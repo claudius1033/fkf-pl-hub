@@ -1,0 +1,4 @@
+seed_league_hub.py
+backup-*/
+*.csv
+.env
