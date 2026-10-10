@@ -4866,5 +4866,26 @@ document.querySelectorAll('body').forEach(function (b) {
     }, 1500);
 })();
 </script>
+<style>
+@media (max-width: 820px) {
+    #m-title { font-size: 1.05rem !important; font-weight: 800; color: #FFC72C; }
+}
+</style>
+<script>
+(function () {
+    function label() {
+        var a = document.querySelector('.nav-links button.active'), t = document.getElementById('m-title');
+        if (!a || !t) return;
+        var s = '';
+        a.childNodes.forEach(function (n) { if (n.nodeType === 3) s += n.nodeValue; });
+        t.textContent = s.trim();
+    }
+    var prev = window.switchTab;
+    window.switchTab = function (tabId, evt) { prev(tabId, evt); label(); };
+    var sw = document.querySelector('.fs-lang');
+    if (sw) sw.addEventListener('click', function () { setTimeout(label, 50); });
+    setTimeout(label, 1600);
+})();
+</script>
 </body>
 </html>
