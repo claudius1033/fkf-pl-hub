@@ -5067,5 +5067,283 @@ document.querySelectorAll('body').forEach(function (b) {
     setInterval(function () { if (fp.classList.contains('active')) load(); }, 60000);
 })();
 </script>
+<style>
+#fantasy-panel .fz-account{display:none!important}
+#fantasy-panel.fx-guest .fz-cols,#fantasy-panel.fx-guest #fkf-chips,#fantasy-panel.fx-guest #fz-bar,#fantasy-panel.fx-guest #fx-head,#fantasy-panel.fx-guest #fx-leagues,#fantasy-panel.fx-guest .fg-save{display:none!important}
+#fg-gate{display:none}
+#fantasy-panel.fx-guest:not(.fx-wait) #fg-gate{display:block}
+.fg-hero{padding:34px 30px;border-radius:16px;border:1px solid #232735;background:radial-gradient(circle at 100% 0,rgba(0,166,81,.35),transparent 55%),radial-gradient(circle at 0 100%,rgba(227,27,35,.32),transparent 55%),linear-gradient(135deg,#1c2030,#0d0f16)}
+.fg-hero h2{font-size:1.8rem;font-weight:800;margin:0 0 8px}
+.fg-hero p{color:#C3C8D6;max-width:560px;line-height:1.5;margin:0 0 20px}
+.fg-btns{display:flex;gap:10px;flex-wrap:wrap}
+.fg-btns button,.fg-b{font-family:inherit;font-weight:700;font-size:.92rem;padding:13px 26px;border-radius:999px;cursor:pointer;border:1px solid rgba(255,255,255,.5);background:none;color:#fff}
+.fg-btns button.pri,.fg-b.pri{background:#fff;color:#12141C;border-color:#fff}
+.fg-link{display:inline-block;margin-top:16px;color:#FFC72C;font-weight:700;font-size:.85rem;cursor:pointer}
+.fg-save{position:sticky;bottom:10px;z-index:5;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:12px;background:rgba(18,20,28,.95);border:1px solid #232735;backdrop-filter:blur(6px)}
+.fg-save #fz-msg{margin:0;flex:1;min-width:140px}
+.fg-pf{font-size:.85rem;color:#C3C8D6}
+.fg-pf div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06)}
+.fg-pf b{color:#fff;text-align:right}
+.fg-sm{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.fg-sm button{flex:1;min-width:90px;background:rgba(255,255,255,.06);border:1px solid #232735;color:#fff;font-family:inherit;font-weight:700;font-size:.75rem;padding:10px 8px;border-radius:8px;cursor:pointer}
+.fg-sm button:hover{border-color:#FFC72C}
+.au-tabs{display:flex;gap:6px;margin-bottom:18px}
+.au-tabs button{flex:1;background:none;border:0;border-bottom:3px solid transparent;color:#8F96A8;font-family:inherit;font-weight:800;font-size:.95rem;padding:10px;cursor:pointer}
+.au-tabs button.on{color:#fff;border-bottom-color:#E31B23}
+.au-chk{display:flex;gap:8px;align-items:flex-start;font-size:.8rem;color:#C3C8D6;margin:6px 0 12px;line-height:1.4}
+.au-chk a{color:#FFC72C;cursor:pointer;font-weight:700}
+.au-dots{display:flex;gap:6px;justify-content:center;margin:16px 0}
+.au-dots i{width:8px;height:8px;border-radius:50%;background:#232735}.au-dots i.on{background:#FFC72C}
+.tu-ico{width:56px;height:56px;border-radius:50%;background:#FFC72C;color:#1b1405;font-weight:900;font-size:1.3rem;display:flex;align-items:center;justify-content:center;margin:0 0 14px}
+.tu-p{color:#C3C8D6;line-height:1.55;font-size:.95rem}
+.lg-doc h4{margin:16px 0 6px;font-size:.95rem}.lg-doc p,.lg-doc li{color:#C3C8D6;font-size:.88rem;line-height:1.55}
+.lg-doc ul{padding-left:18px;margin:6px 0}
+#ck{position:fixed;left:12px;right:12px;bottom:12px;z-index:3600;max-width:760px;margin:0 auto;background:#12141C;border:1px solid #232735;border-radius:14px;padding:14px 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+#ck p{flex:1;min-width:220px;margin:0;font-size:.82rem;color:#C3C8D6;line-height:1.45}
+#ck button{font-family:inherit;font-weight:700;font-size:.8rem;padding:10px 16px;border-radius:8px;cursor:pointer;border:1px solid #232735;background:rgba(255,255,255,.06);color:#fff}
+#ck button.pri{background:#E31B23;border-color:#E31B23}
+#ck a{color:#FFC72C;cursor:pointer;font-weight:700}
+#fkf-foot{margin-top:40px;padding:20px 0 8px;border-top:1px solid #232735;text-align:center;font-size:.78rem;color:#8F96A8;line-height:1.9}
+#fkf-foot a{color:#C3C8D6;cursor:pointer;margin:0 8px;font-weight:600}
+#fkf-foot a:hover{color:#FFC72C}
+#matches-container .card.fav{box-shadow:0 0 0 2px #FFC72C,0 8px 22px rgba(0,0,0,.28)}
+</style>
+<script>
+(function () {
+    var fp = document.getElementById('fantasy-panel');
+    if (!fp || document.getElementById('fg-gate')) return;
+    var CO = { name: '[Your name or company]', email: '[your email address]', site: 'fkf-pl-hub.vercel.app' };
+
+    function $(id) { return document.getElementById(id); }
+    function L(a, b) { return document.documentElement.lang === 'sw' ? b : a; }
+    function esc(s) { return escapeHtml(s); }
+    function pn(p) { return p.known_as || p.full_name; }
+    async function get(path) {
+        var r = await fetch(DB_URL + path, { headers: headers });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    }
+    async function rpc(name, args) {
+        var r = await fetch(DB_URL + '/rpc/' + name, { method: 'POST', headers: headers, body: JSON.stringify(args) });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    }
+    function teams() { return Object.keys(teamMap).map(function (k) { return teamMap[k]; }).sort(function (a, b) { return a.name.localeCompare(b.name); }); }
+    function players() { var o = []; Object.keys(playersByTeam).forEach(function (k) { o = o.concat(playersByTeam[k]); }); return o; }
+    function meName() { var b = document.querySelector('#fz-who b'); return b ? b.textContent.trim() : ''; }
+    function loggedIn() { return !!meName(); }
+    async function myId() {
+        var r = await get('/fantasy_teams?select=id&team_name=eq.' + encodeURIComponent(meName()));
+        return r[0] ? String(r[0].id) : null;
+    }
+    function pin() {
+        var p = ($('fz-pin') || {}).value || '';
+        if (!/^\d{4}$/.test(p)) p = prompt(L('Enter your 4-digit PIN', 'Weka PIN yako ya tarakimu 4')) || '';
+        return p;
+    }
+
+    /* ---------- cookies and storage consent ---------- */
+    var PREF = ['fan_team', 'fkf_lang'];
+    function consent() { try { return localStorage.getItem('fkf_consent'); } catch (e) { return null; } }
+    var rawSet = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) { if (PREF.indexOf(k) > -1 && consent() !== 'all') return; return rawSet.call(this, k, v); };
+    function banner() {
+        if (consent() || $('ck')) return;
+        var b = document.createElement('div');
+        b.id = 'ck';
+        b.innerHTML = '<p>' + L('We use a small amount of browser storage to run the site. With "Accept all" we also remember your login and language. We use no advertising or tracking cookies. ', 'Tunatumia hifadhi ndogo ya kivinjari kuendesha tovuti. Ukikubali yote, tunakumbuka akaunti na lugha yako. Hatutumii vidakuzi vya matangazo wala ufuatiliaji. ') + '<a data-doc="cookies">' + L('Details', 'Maelezo') + '</a></p><button data-c="essential">' + L('Essential only', 'Muhimu pekee') + '</button><button class="pri" data-c="all">' + L('Accept all', 'Kubali yote') + '</button>';
+        document.body.appendChild(b);
+    }
+    banner();
+
+    /* ---------- legal pages ---------- */
+    var DOCS = {
+        terms: ['Terms of use', '<h4>1. About</h4><p>FKF PL Network is a free fan hub and fantasy game for the Kenyan Premier League, run by ' + CO.name + '.</p><h4>2. Playing fairly</h4><ul><li>One team per person. No cheating, no offensive team names.</li><li>We may rename or remove teams and correct results or points at any time.</li></ul><h4>3. Fantasy game</h4><p>The game is free. Points and rankings are unofficial. No prizes are promised unless announced here.</p><h4>4. Content</h4><p>Club names, crests and photos belong to their owners and are shown for information.</p><h4>5. The service</h4><p>The site is provided as it is and may change or pause without notice.</p><h4>6. Contact</h4><p>' + CO.email + '</p>'],
+        privacy: ['Privacy policy', '<h4>Who we are</h4><p>' + CO.name + ' runs ' + CO.site + '. Contact: ' + CO.email + '.</p><h4>What we collect</h4><ul><li>Your team name and a hashed PIN (we cannot read your PIN).</li><li>Your squads, captains, chips and leagues.</li><li>Optional favourites: club, manager, player, stadium.</li><li>Technical logs kept by our hosts (such as IP address).</li></ul><h4>Why</h4><p>To run the game, show rankings and personalise your page. We do not sell data and do not use advertising or analytics.</p><h4>Who can see it</h4><p>Your team name, squad and favourites are visible to other players. Do not use your real name if you do not want it shown.</p><h4>Services we use</h4><p>Supabase (database), Vercel (hosting) and YouTube (videos, loaded in privacy mode when you press play).</p><h4>Your rights</h4><p>Under the Kenya Data Protection Act, 2019 you can ask to see, correct or delete your data, or object to its use. Email ' + CO.email + '. You can also complain to the Office of the Data Protection Commissioner (odpc.go.ke).</p><h4>Children</h4><p>If you are under 18, play only with the permission of a parent or guardian.</p>'],
+        cookies: ['Cookies and storage', '<h4>Always on</h4><ul><li>Your cookie choice.</li><li>Site owner login (owner only).</li></ul><h4>Only if you press Accept all</h4><ul><li>Remember my team login on this device.</li><li>Remember my language.</li></ul><h4>Not used</h4><p>No advertising cookies and no analytics. Video thumbnails load from YouTube, and videos play through youtube-nocookie.com.</p><h4>Change your choice</h4><p>Press "Cookie settings" in the footer at any time.</p>']
+    };
+    var lg = document.createElement('div');
+    lg.id = 'lg-modal'; lg.className = 'modal-screen';
+    lg.innerHTML = '<div class="result-modal-frame goals-frame"><button class="close-btn" data-x="lg-modal">&times;</button><div id="lg-body" class="lg-doc"></div></div>';
+    document.body.appendChild(lg);
+    function openDoc(k) { $('lg-body').innerHTML = '<h3>' + DOCS[k][0] + '</h3>' + DOCS[k][1]; lg.classList.add('active'); }
+
+    var foot = document.createElement('div');
+    foot.id = 'fkf-foot';
+    foot.innerHTML = '\u00A9 2026 FKF PL Network<br><a data-doc="terms">Terms</a><a data-doc="privacy">Privacy</a><a data-doc="cookies">Cookies</a><a data-a="cookie-set">Cookie settings</a><a data-a="tour">How to play</a>';
+    var mainEl = document.querySelector('main'); if (mainEl) mainEl.appendChild(foot);
+
+    /* ---------- tutorial ---------- */
+    var STEPS = [
+        ['1', 'Welcome to FKF Fantasy', 'Karibu FKF Fantasy', 'Pick 15 real Kenyan Premier League players. They earn points when they score, assist or keep a clean sheet, and you climb the rankings.', 'Chagua wachezaji 15 halisi wa Ligi Kuu. Wanapata pointi wakifunga, wakisaidia au kutofungwa, nawe unapanda kwenye jedwali.'],
+        ['2', 'Build your squad', 'Jenga kikosi chako', 'You have KSh 100m for 2 goalkeepers, 5 defenders, 5 midfielders and 3 forwards, with at most 3 players from one club. Start 11 (4-3-3 by default) and keep 4 on the bench.', 'Una KSh 100m kwa makipa 2, mabeki 5, viungo 5 na washambuliaji 3, si zaidi ya wachezaji 3 wa klabu moja. Anza na 11 (4-3-3) na uweke 4 akiba.'],
+        ['3', 'Captain and points', 'Nahodha na pointi', 'Your captain scores double. A goal is worth 6 for a GK or DEF, 5 for a MID and 4 for a FWD. An assist is 3. A clean sheet is 4 for a GK or DEF and 1 for a MID.', 'Nahodha wako anapata mara mbili. Bao ni pointi 6 kwa kipa au beki, 5 kwa kiungo, 4 kwa mshambuliaji. Pasi ya bao ni 3. Kutofungwa ni 4 kwa kipa au beki, 1 kwa kiungo.'],
+        ['4', 'Transfers and chips', 'Uhamisho na chips', 'You get 1 free transfer each gameweek (bank up to 5). Extra transfers cost 4 points. Chips: Bench Boost, Triple Captain, Wildcard and Free Hit, each once per half-season.', 'Una uhamisho 1 wa bure kila raundi (hifadhi hadi 5). Wa ziada unagharimu pointi 4. Chips: Bench Boost, Triple Captain, Wildcard na Free Hit, kila moja mara moja kwa nusu msimu.'],
+        ['5', 'Deadlines and leagues', 'Muda wa mwisho na ligi', 'Your squad locks 90 minutes before the first kickoff of each gameweek. Compete in the Overall table, or create a league with a code and invite friends.', 'Kikosi chako hufungwa dakika 90 kabla ya mechi ya kwanza ya kila raundi. Shindana kwenye jedwali la Jumla, au unda ligi kwa msimbo uwaalike marafiki.'],
+        ['6', 'Explore the hub', 'Chunguza tovuti', 'Press / to search players, clubs and managers. Tap any club or player name to jump to it. Switch between English and Kiswahili in the menu.', 'Bonyeza / kutafuta wachezaji, vilabu na makocha. Gusa jina la klabu au mchezaji kwenda huko. Badilisha kati ya Kiingereza na Kiswahili kwenye menyu.']
+    ];
+    var tu = document.createElement('div');
+    tu.id = 'tu-modal'; tu.className = 'modal-screen';
+    tu.innerHTML = '<div class="result-modal-frame"><button class="close-btn" data-x="tu-modal">&times;</button><div id="tu-body"></div></div>';
+    document.body.appendChild(tu);
+    function tour(i) {
+        i = i || 0; var s = STEPS[i], sw = document.documentElement.lang === 'sw';
+        $('tu-body').innerHTML = '<div class="tu-ico">' + s[0] + '</div><h3>' + (sw ? s[2] : s[1]) + '</h3><p class="tu-p">' + (sw ? s[4] : s[3]) + '</p><div class="au-dots">' + STEPS.map(function (x, j) { return '<i' + (j === i ? ' class="on"' : '') + '></i>'; }).join('') + '</div>' +
+            '<div class="result-actions">' + (i > 0 ? '<button class="result-cancel-btn" data-tu="' + (i - 1) + '">' + L('Back', 'Rudi') + '</button>' : '<button class="result-cancel-btn" data-x="tu-modal">' + L('Skip', 'Ruka') + '</button>') +
+            (i < STEPS.length - 1 ? '<button class="result-save-btn" data-tu="' + (i + 1) + '">' + L('Next', 'Endelea') + '</button>' : '<button class="result-save-btn" data-x="tu-modal">' + L('Start playing', 'Anza kucheza') + '</button>') + '</div>';
+        tu.classList.add('active');
+    }
+
+    /* ---------- register / log in / profile ---------- */
+    var au = document.createElement('div');
+    au.id = 'au-modal'; au.className = 'modal-screen';
+    au.innerHTML = '<div class="result-modal-frame"><button class="close-btn" data-x="au-modal">&times;</button><div id="au-body"></div></div>';
+    document.body.appendChild(au);
+    function msgHtml(m, ok) { return '<div class="result-error"' + (ok ? ' style="color:#10B981"' : '') + '>' + esc(m || '') + '</div>'; }
+    function showAuth(v, msg, name) {
+        var h = '<div class="au-tabs"><button data-v="login"' + (v === 'login' ? ' class="on"' : '') + '>' + L('Log in', 'Ingia') + '</button><button data-v="register"' + (v === 'register' ? ' class="on"' : '') + '>' + L('Register', 'Jisajili') + '</button></div>';
+        h += '<div class="inj-field"><label for="au-n">' + L('Team name', 'Jina la timu') + '</label><input type="text" id="au-n" maxlength="30" value="' + esc(name || '') + '"></div>' +
+            '<div class="inj-field"><label for="au-p">' + L('4-digit PIN', 'PIN ya tarakimu 4') + '</label><input type="password" id="au-p" maxlength="4" inputmode="numeric" autocomplete="off"></div>';
+        if (v === 'register') h += '<div class="inj-field"><label for="au-p2">' + L('Repeat PIN', 'Rudia PIN') + '</label><input type="password" id="au-p2" maxlength="4" inputmode="numeric" autocomplete="off"></div>' +
+            '<label class="au-chk"><input type="checkbox" id="au-t"><span>' + L('I agree to the ', 'Nakubali ') + '<a data-doc="terms">' + L('Terms', 'Masharti') + '</a>' + L(' and ', ' na ') + '<a data-doc="privacy">' + L('Privacy policy', 'Sera ya faragha') + '</a>. ' + L('If I am under 18, a parent or guardian allows me to play.', 'Nikiwa chini ya miaka 18, mzazi au mlezi amenikubalia.') + '</span></label>';
+        h += msgHtml(msg) + '<div class="result-actions"><button class="result-cancel-btn" data-x="au-modal">' + L('Cancel', 'Ghairi') + '</button><button class="result-save-btn" data-a="' + (v === 'login' ? 'do-login' : 'do-reg') + '">' + (v === 'login' ? L('Log in', 'Ingia') : L('Register now', 'Jisajili sasa')) + '</button></div>';
+        $('au-body').innerHTML = h; au.classList.add('active');
+    }
+    var PLAYER_MAP = {};
+    function opts(list, sel) { return '<option value="">-</option>' + list.map(function (o) { return '<option value="' + o[0] + '"' + (String(o[0]) === String(sel) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join(''); }
+    function showProfile(first, cur) {
+        cur = cur || {}; PLAYER_MAP = {};
+        var ts = teams(), curP = '';
+        var dl = players().sort(function (a, b) { return pn(a).localeCompare(pn(b)); }).map(function (p) {
+            var lab = pn(p) + ' \u00B7 ' + ((teamMap[p.team_id] || {}).name || ''); PLAYER_MAP[lab] = p.id; if (String(p.id) === String(cur.fav_player)) curP = lab;
+            return '<option value="' + esc(lab) + '"></option>';
+        }).join('');
+        $('au-body').innerHTML = '<h3>' + L('Make it yours', 'Fanya iwe yako') + '</h3><p class="result-modal-sub">' + L('Choose your favourites. You can change them any time.', 'Chagua unaowapenda. Unaweza kubadilisha wakati wowote.') + '</p>' +
+            '<div class="inj-field"><label for="pf-club">' + L('Favourite club', 'Klabu pendwa') + '</label><select id="pf-club">' + opts(ts.map(function (t) { return [t.id, t.name]; }), cur.fav_club) + '</select></div>' +
+            '<div class="inj-field"><label for="pf-man">' + L('Favourite manager', 'Kocha pendwa') + '</label><select id="pf-man">' + opts(ts.filter(function (t) { return t.manager; }).map(function (t) { return [t.id, t.manager + ' (' + t.name + ')']; }), cur.fav_manager) + '</select></div>' +
+            '<div class="inj-field"><label for="pf-pl">' + L('Favourite player', 'Mchezaji pendwa') + '</label><input type="text" id="pf-pl" list="pf-dl" value="' + esc(curP) + '" placeholder="' + L('Start typing a name', 'Anza kuandika jina') + '"><datalist id="pf-dl">' + dl + '</datalist></div>' +
+            '<div class="inj-field"><label for="pf-st">' + L('Favourite stadium', 'Uwanja pendwa') + '</label><select id="pf-st">' + opts(ts.filter(function (t) { return t.stadium_name; }).map(function (t) { return [t.id, t.stadium_name + ' (' + t.name + ')']; }), cur.fav_stadium) + '</select></div>' +
+            '<div class="result-error" id="pf-err"></div><div class="result-actions"><button class="result-cancel-btn" data-a="' + (first ? 'pf-skip' : 'close-au') + '">' + (first ? L('Skip', 'Ruka') : L('Cancel', 'Ghairi')) + '</button><button class="result-save-btn" data-a="pf-save" data-first="' + (first ? 1 : 0) + '">' + L('Save', 'Hifadhi') + '</button></div>';
+        au.classList.add('active');
+    }
+    function errText(e) { return { name: L('Use 3 to 30 characters.', 'Tumia herufi 3 hadi 30.'), pin: L('The PIN must be exactly 4 digits.', 'PIN lazima iwe tarakimu 4.'), taken: L('That team name is taken.', 'Jina hilo limechukuliwa.') }[e] || L('Something went wrong.', 'Kuna hitilafu.'); }
+
+    async function doLogin() {
+        var n = $('au-n').value.trim(), p = $('au-p').value.trim();
+        if (!n || !/^\d{4}$/.test(p)) { showAuth('login', L('Enter your team name and 4-digit PIN.', 'Weka jina la timu na PIN ya tarakimu 4.'), n); return; }
+        $('fz-name').value = n; $('fz-pin').value = p;
+        try { await window.fzLoad(); } catch (e) {}
+        if (loggedIn()) { au.classList.remove('active'); var m = $('fz-msg'); if (m) m.textContent = ''; sync(); }
+        else showAuth('login', L('Wrong name or PIN. Five wrong tries lock the team for 15 minutes.', 'Jina au PIN si sahihi. Majaribio matano yasiyo sahihi hufunga timu dakika 15.'), n);
+    }
+    async function doReg() {
+        var n = $('au-n').value.trim(), p = $('au-p').value.trim();
+        if (p !== $('au-p2').value.trim()) { showAuth('register', L('The two PINs do not match.', 'PIN mbili hazilingani.'), n); return; }
+        if (!$('au-t').checked) { showAuth('register', L('Please accept the Terms and Privacy policy.', 'Tafadhali kubali Masharti na Sera ya faragha.'), n); return; }
+        try {
+            var r = await rpc('fantasy_register', { p_name: n, p_pin: p });
+            if (!r.ok) { showAuth('register', errText(r.error), n); return; }
+            $('fz-name').value = n; $('fz-pin').value = p;
+            await window.fzLoad();
+            await sync(); showProfile(true);
+        } catch (e) { showAuth('register', L('Could not reach the server. Have you run the accounts SQL?', 'Seva haipatikani. Umeendesha SQL ya akaunti?'), n); }
+    }
+    async function saveProfile(el) {
+        var first = el.dataset.first === '1', id = await myId(), p = pin(), pl = PLAYER_MAP[($('pf-pl').value || '').trim()];
+        function num(v) { return v ? Number(v) : null; }
+        try {
+            var r = await rpc('fantasy_set_profile', { p_team: id, p_pin: p, p_club: num($('pf-club').value), p_manager: num($('pf-man').value), p_player: pl || null, p_stadium: num($('pf-st').value) });
+            if (!r.ok) { $('pf-err').textContent = L('Could not save. Check your PIN.', 'Imeshindwa kuhifadhi. Angalia PIN yako.'); return; }
+            await sync();
+            if (first) tour(0); else au.classList.remove('active');
+        } catch (e) { $('pf-err').textContent = L('Could not reach the server. Have you run the accounts SQL?', 'Seva haipatikani. Umeendesha SQL ya akaunti?'); }
+    }
+
+    /* ---------- guest gate, profile card, save bar ---------- */
+    var main = $('fx-main') || fp, PROF = null, FAV = '';
+    var gate = document.createElement('div');
+    gate.id = 'fg-gate'; gate.className = 'fg-hero';
+    main.insertBefore(gate, main.firstChild);
+    function renderGate() {
+        gate.innerHTML = '<h2>' + L('Register to play FKF Fantasy', 'Jisajili kucheza FKF Fantasy') + '</h2><p>' + L('Pick your squad from the Kenyan Premier League, name a captain, play chips and climb the rankings. It is free to play.', 'Chagua kikosi chako cha Ligi Kuu ya Kenya, taja nahodha, tumia chips na upande kwenye jedwali. Ni bure kucheza.') + '</p>' +
+            '<div class="fg-btns"><button data-a="login">' + L('Log in', 'Ingia') + '</button><button class="pri" data-a="register">' + L('Register now', 'Jisajili sasa') + '</button></div><a class="fg-link" data-a="tour">' + L('How it works', 'Inavyofanya kazi') + '</a>';
+    }
+    var prof = document.createElement('div');
+    prof.className = 'fx-card'; prof.id = 'fg-prof'; prof.style.display = 'none';
+    var anchor = $('fx-team'); if (anchor) anchor.insertAdjacentElement('afterend', prof); else fp.appendChild(prof);
+    function renderProf() {
+        var P = PROF || {}, c = teamMap[P.fav_club], m = teamMap[P.fav_manager], s = teamMap[P.fav_stadium], pl = players().filter(function (x) { return String(x.id) === String(P.fav_player); })[0];
+        function row(l, v) { return '<div><span>' + l + '</span><b>' + (v ? esc(v) : '-') + '</b></div>'; }
+        prof.innerHTML = '<h3>' + L('My favourites', 'Ninaowapenda') + '</h3><div class="fg-pf">' + row(L('Club', 'Klabu'), c && c.name) + row(L('Manager', 'Kocha'), m && m.manager) + row(L('Player', 'Mchezaji'), pl && pn(pl)) + row(L('Stadium', 'Uwanja'), s && s.stadium_name) + '</div>' +
+            '<div class="fg-sm"><button data-a="edit-pf">' + L('Edit', 'Hariri') + '</button><button data-a="tour">' + L('How to play', 'Jinsi ya kucheza') + '</button><button data-a="logout">' + L('Log out', 'Toka') + '</button></div>';
+        prof.style.display = '';
+    }
+    var cols = fp.querySelector('.fz-cols'), save = document.createElement('div');
+    save.className = 'fg-save';
+    save.innerHTML = '<button class="fz-primary" data-a="save-team">' + L('Save team', 'Hifadhi timu') + '</button>';
+    if (cols) { cols.insertAdjacentElement('afterend', save); var mg = $('fz-msg'); if (mg) save.appendChild(mg); }
+
+    function markFav() {
+        document.querySelectorAll('#matches-container .card').forEach(function (c) {
+            var hit = !!FAV && [].some.call(c.querySelectorAll('.fx-row > span:first-child'), function (s) { return s.textContent.trim() === FAV; });
+            c.classList.toggle('fav', hit);
+        });
+    }
+    async function sync() {
+        var inn = loggedIn();
+        fp.classList.toggle('fx-guest', !inn);
+        if (!inn) { prof.style.display = 'none'; PROF = null; FAV = ''; markFav(); return; }
+        try { var id = await myId(), r = id ? await get('/fantasy_profiles?select=*&team_id=eq.' + id) : []; PROF = r[0] || null; } catch (e) { PROF = null; }
+        FAV = PROF && teamMap[PROF.fav_club] ? teamMap[PROF.fav_club].name : '';
+        renderProf(); markFav();
+    }
+
+    /* ---------- one click handler for everything ---------- */
+    document.addEventListener('click', async function (e) {
+        var t;
+        if ((t = e.target.closest('[data-x]'))) { $(t.dataset.x).classList.remove('active'); return; }
+        if ((t = e.target.closest('[data-doc]'))) { openDoc(t.dataset.doc); return; }
+        if ((t = e.target.closest('#ck [data-c]'))) {
+            rawSet.call(localStorage, 'fkf_consent', t.dataset.c);
+            if (t.dataset.c !== 'all') PREF.forEach(function (k) { try { localStorage.removeItem(k); } catch (x) {} });
+            $('ck').remove(); return;
+        }
+        if ((t = e.target.closest('[data-tu]'))) { tour(Number(t.dataset.tu)); return; }
+        if ((t = e.target.closest('[data-v]'))) { showAuth(t.dataset.v, '', ($('au-n') || {}).value); return; }
+        if (!(t = e.target.closest('[data-a]'))) return;
+        var a = t.dataset.a;
+        if (a === 'login') showAuth('login');
+        else if (a === 'register') showAuth('register');
+        else if (a === 'do-login') doLogin();
+        else if (a === 'do-reg') doReg();
+        else if (a === 'tour') tour(0);
+        else if (a === 'cookie-set') { try { localStorage.removeItem('fkf_consent'); } catch (x) {} banner(); }
+        else if (a === 'save-team') { if (window.fzSave) window.fzSave(); }
+        else if (a === 'logout') { if (window.fzClear) window.fzClear(); sync(); }
+        else if (a === 'edit-pf') showProfile(false, PROF);
+        else if (a === 'pf-save') saveProfile(t);
+        else if (a === 'pf-skip') { au.classList.remove('active'); tour(0); }
+        else if (a === 'close-au') au.classList.remove('active');
+    });
+
+    var who = $('fz-who');
+    if (who) new MutationObserver(function () { sync(); }).observe(who, { childList: true, subtree: true, characterData: true });
+    var mc = $('matches-container');
+    if (mc) new MutationObserver(markFav).observe(mc, { childList: true });
+    new MutationObserver(function () { renderGate(); if (PROF) renderProf(); save.querySelector('button').textContent = L('Save team', 'Hifadhi timu'); }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+
+    var pf = $('player-iframe');
+    if (pf) new MutationObserver(function () {
+        var s = pf.getAttribute('src') || '';
+        if (s.indexOf('www.youtube.com/embed') > -1) pf.setAttribute('src', s.replace('www.youtube.com', 'www.youtube-nocookie.com'));
+    }).observe(pf, { attributes: true, attributeFilter: ['src'] });
+
+    renderGate();
+    fp.classList.add('fx-guest');
+    var saved = false; try { saved = !!localStorage.getItem('fan_team'); } catch (e) {}
+    if (saved) fp.classList.add('fx-wait');
+    setTimeout(function () { fp.classList.remove('fx-wait'); sync(); }, saved ? 1800 : 300);
+})();
+</script>
 </body>
 </html>
