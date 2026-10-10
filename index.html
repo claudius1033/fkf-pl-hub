@@ -4887,5 +4887,185 @@ document.querySelectorAll('body').forEach(function (b) {
     setTimeout(label, 1600);
 })();
 </script>
+<style>
+#fantasy-panel .fz-pitch::before{transform:none!important;left:2%!important;right:2%!important;top:2%!important;bottom:2%!important;border:0!important;clip-path:polygon(7% 0,93% 0,100% 100%,0 100%)}
+#fantasy-panel .fz-lb{display:none!important}
+.fl-h{font-size:.72rem;font-weight:800;color:#8F96A8;margin:14px 0 2px}
+.fl-row{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid rgba(255,255,255,.06);font-size:.9rem;font-weight:700;cursor:pointer}
+.fl-row:hover span{color:#FFC72C}
+.fl-row b{color:#FFC72C}
+.fl-note{color:#8F96A8;font-size:.82rem;padding:8px 0}
+.fl-btn{width:100%;margin-top:12px;background:#E31B23;border:0;color:#fff;font-family:inherit;font-weight:700;font-size:.85rem;padding:11px;border-radius:8px;cursor:pointer}
+.fl-btn.alt{background:rgba(255,255,255,.07);border:1px solid #232735;margin-top:8px}
+.fl-btn:hover{filter:brightness(1.1)}
+.fl-code{font-size:1.4rem;font-weight:800;letter-spacing:3px;color:#FFC72C}
+.fl-sec{margin:0 0 18px}
+.fl-sec h4{font-size:.9rem;font-weight:800;margin:0 0 8px}
+.fl-in{width:100%;background:#171A24;border:1px solid #232735;border-radius:8px;color:#fff;padding:11px 12px;font-size:.95rem;font-family:inherit}
+.fl-in:focus{outline:none;border-color:#FFC72C}
+#fl-modal .standings-table tr.me td{color:#FFC72C}
+#fl-modal .tw{max-height:55vh;overflow:auto}
+</style>
+<script>
+(function () {
+    var fp = document.getElementById('fantasy-panel');
+    if (!fp || document.getElementById('fx-leagues')) return;
+    function $(id) { return document.getElementById(id); }
+    function L(a, b) { return document.documentElement.lang === 'sw' ? b : a; }
+    function esc(s) { return escapeHtml(s); }
+    var D = { ids: {}, names: {}, leagues: [], members: [], codes: {} }, openKey = null;
+
+    async function get(path) {
+        var r = await fetch(DB_URL + path, { headers: headers });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    }
+    async function rpc(name, args) {
+        var r = await fetch(DB_URL + '/rpc/' + name, { method: 'POST', headers: headers, body: JSON.stringify(args) });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    }
+    function meName() { var b = document.querySelector('#fz-who b'); return b ? b.textContent.trim() : ''; }
+    function myId() { return D.ids[meName()] || null; }
+    function pin() {
+        var p = ($('fz-pin') || {}).value || '';
+        if (!/^\d{4}$/.test(p)) { try { p = JSON.parse(localStorage.getItem('fan_team') || '{}').pin || ''; } catch (e) { p = ''; } }
+        return p;
+    }
+    function rows() {
+        return [].map.call(document.querySelectorAll('#fz-board tbody tr'), function (r) {
+            var n = r.querySelector('td.club'), g = r.querySelector('td.gw'), p = r.querySelector('td.pts');
+            return { name: n ? n.textContent.trim() : '', gw: g ? Number(g.textContent) || 0 : 0, total: p ? Number(p.textContent) || 0 : 0 };
+        }).filter(function (x) { return x.name; });
+    }
+    function rank(list, total) { return 1 + list.filter(function (x) { return x.total > total; }).length; }
+    function membersOf(id) {
+        return D.members.filter(function (m) { return String(m.league_id) === String(id); }).map(function (m) { return D.names[String(m.team_id)]; }).filter(Boolean);
+    }
+    function myLeagues() {
+        var id = myId(); if (!id) return [];
+        return D.leagues.filter(function (l) {
+            return D.members.some(function (m) { return String(m.league_id) === String(l.id) && String(m.team_id) === String(id); });
+        });
+    }
+
+    var card = document.createElement('div');
+    card.className = 'fx-card'; card.id = 'fx-leagues';
+    var anchor = $('fx-pts') || fp.querySelector('.fz-lb');
+    if (anchor) anchor.insertAdjacentElement('afterend', card); else fp.appendChild(card);
+
+    function render() {
+        var all = rows(), me = meName(), mine = all.filter(function (x) { return x.name === me; })[0], id = myId();
+        var h = '<h3>' + L('My Leagues', 'Ligi Zangu') + '</h3>';
+        h += '<div class="fl-h">' + L('Overall', 'Jumla') + '</div><div class="fl-row" data-l="overall"><span>' + L('All players', 'Wachezaji wote') + '</span><b>' + (mine ? rank(all, mine.total) + ' / ' + all.length : all.length + ' ' + L('teams', 'timu')) + '</b></div>';
+        h += '<div class="fl-h">' + L('Classic leagues', 'Ligi za kawaida') + '</div>';
+        if (!id) h += '<div class="fl-note">' + L('Save or load your team to see your leagues.', 'Hifadhi au pakia timu yako uone ligi zako.') + '</div>';
+        else {
+            var ls = myLeagues();
+            h += ls.map(function (l) {
+                var names = membersOf(l.id), list = all.filter(function (x) { return names.indexOf(x.name) > -1; });
+                return '<div class="fl-row" data-l="' + l.id + '"><span>' + esc(l.name) + '</span><b>' + (mine ? rank(list, mine.total) + ' / ' + list.length : '-') + '</b></div>';
+            }).join('') || '<div class="fl-note">' + L('You have not joined a league yet.', 'Bado hujajiunga na ligi.') + '</div>';
+        }
+        h += '<button class="fl-btn" data-a="join">' + L('Create or join a league', 'Unda au jiunge na ligi') + '</button>';
+        card.innerHTML = h;
+    }
+
+    var md = document.createElement('div');
+    md.id = 'fl-modal'; md.className = 'modal-screen';
+    md.innerHTML = '<div class="result-modal-frame goals-frame"><button class="close-btn" id="fl-x">&times;</button><div id="fl-body"></div></div>';
+    document.body.appendChild(md);
+    function close() { md.classList.remove('active'); openKey = null; }
+    $('fl-x').onclick = close;
+    md.addEventListener('click', function (e) { if (e.target === md) close(); });
+
+    async function showLeague(key) {
+        openKey = key;
+        var all = rows(), me = meName(), name, list, code = '';
+        if (key === 'overall') { name = L('Overall', 'Jumla'); list = all; }
+        else {
+            var l = D.leagues.filter(function (x) { return String(x.id) === String(key); })[0]; if (!l) return;
+            name = l.name; var names = membersOf(key); list = all.filter(function (x) { return names.indexOf(x.name) > -1; });
+            var id = myId(), p = pin();
+            if (id && /^\d{4}$/.test(p) && !D.codes[key]) {
+                try { var c = await rpc('fantasy_league_codes', { p_team: id, p_pin: p }); if (c.ok) c.codes.forEach(function (x) { D.codes[String(x.id)] = x.code; }); } catch (e) {}
+            }
+            code = D.codes[String(key)] || '';
+        }
+        $('fl-body').innerHTML = '<h3>' + esc(name) + '</h3><p class="result-modal-sub">' + list.length + ' ' + L('teams', 'timu') +
+            (code ? ' \u00B7 ' + L('Code', 'Msimbo') + ': <span class="fl-code">' + esc(code) + '</span>' : '') + '</p>' +
+            '<div class="tw"><table class="standings-table"><thead><tr><th>#</th><th class="left">' + L('Team', 'Timu') + '</th><th>GW</th><th>' + L('Total', 'Jumla') + '</th></tr></thead><tbody>' +
+            (list.slice(0, 200).map(function (x) {
+                return '<tr' + (x.name === me ? ' class="me"' : '') + '><td>' + rank(list, x.total) + '</td><td class="club">' + esc(x.name) + '</td><td>' + x.gw + '</td><td class="pts">' + x.total + '</td></tr>';
+            }).join('') || '<tr><td colspan="4">-</td></tr>') + '</tbody></table></div>' +
+            (code ? '<button class="fl-btn alt" data-a="copy" data-c="' + esc(code) + '">' + L('Copy code', 'Nakili msimbo') + '</button>' : '') +
+            (key !== 'overall' && myId() ? '<button class="fl-btn alt" data-a="leave" data-l="' + esc(key) + '">' + L('Leave league', 'Ondoka kwenye ligi') + '</button>' : '');
+        md.classList.add('active');
+    }
+
+    function showJoin(msg, ok) {
+        $('fl-body').innerHTML = '<h3>' + L('Leagues', 'Ligi') + '</h3><p class="result-modal-sub">' + L('Play against friends. Your points still add up from gameweek 1.', 'Cheza na marafiki. Pointi zako bado zinajumlishwa tangu raundi ya 1.') + '</p>' +
+            '<div class="fl-sec"><h4>' + L('Create a league', 'Unda ligi') + '</h4><input class="fl-in" id="fl-name" maxlength="30" placeholder="' + L('League name', 'Jina la ligi') + '"><button class="fl-btn" data-a="create">' + L('Create', 'Unda') + '</button></div>' +
+            '<div class="fl-sec"><h4>' + L('Join with a code', 'Jiunge kwa msimbo') + '</h4><input class="fl-in" id="fl-code" maxlength="6" placeholder="ABC123" style="text-transform:uppercase"><button class="fl-btn" data-a="go">' + L('Join', 'Jiunge') + '</button></div>' +
+            '<div class="result-error" id="fl-msg" style="' + (ok ? 'color:#10B981' : '') + '">' + esc(msg || '') + '</div>';
+        md.classList.add('active');
+    }
+    function err(e) { return { auth: L('Load your team first, with the right PIN.', 'Pakia timu yako kwanza kwa PIN sahihi.'), name: L('Use 2 to 30 characters.', 'Tumia herufi 2 hadi 30.'), limit: L('You have reached the limit.', 'Umefika kikomo.'), code: L('That code does not exist.', 'Msimbo huo haupo.') }[e] || L('Something went wrong.', 'Kuna hitilafu.'); }
+
+    async function act(a, el) {
+        var id = myId(), p = pin();
+        if (a === 'copy') { try { await navigator.clipboard.writeText(el.dataset.c); el.textContent = L('Copied', 'Imenakiliwa'); } catch (e) {} return; }
+        if (!id || !/^\d{4}$/.test(p)) { showJoin(err('auth')); return; }
+        try {
+            if (a === 'create') {
+                var r = await rpc('fantasy_league_create', { p_team: id, p_pin: p, p_name: ($('fl-name') || {}).value || '' });
+                if (!r.ok) { showJoin(err(r.error)); return; }
+                D.codes[String(r.id)] = r.code; await load(); showJoin(L('League created. Share this code: ', 'Ligi imeundwa. Shiriki msimbo huu: ') + r.code, true);
+            } else if (a === 'go') {
+                var j = await rpc('fantasy_league_join', { p_team: id, p_pin: p, p_code: ($('fl-code') || {}).value || '' });
+                if (!j.ok) { showJoin(err(j.error)); return; }
+                await load(); showLeague(j.id);
+            } else if (a === 'leave') {
+                if (!confirm(L('Leave this league?', 'Ondoka kwenye ligi hii?'))) return;
+                await rpc('fantasy_league_leave', { p_team: id, p_pin: p, p_league: Number(el.dataset.l) });
+                close(); await load();
+            }
+        } catch (e) { showJoin(L('Could not reach the server. Have you run the leagues SQL?', 'Seva haipatikani. Umeendesha SQL ya ligi?')); }
+    }
+    document.addEventListener('click', function (e) {
+        var t;
+        if ((t = e.target.closest('#fx-leagues [data-l]'))) { showLeague(t.dataset.l); return; }
+        if ((t = e.target.closest('#fx-leagues [data-a="join"]'))) { showJoin(''); return; }
+        if ((t = e.target.closest('#fl-modal [data-a]'))) act(t.dataset.a, t);
+    });
+
+    async function load() {
+        try {
+            var r = await Promise.all([get('/fantasy_teams?select=id,team_name'), get('/fantasy_leagues?select=id,name').catch(function () { return []; }), get('/fantasy_league_members?select=league_id,team_id').catch(function () { return []; })]);
+            D.ids = {}; D.names = {};
+            r[0].forEach(function (t) { D.ids[t.team_name] = String(t.id); D.names[String(t.id)] = t.team_name; });
+            D.leagues = r[1]; D.members = r[2];
+            render();
+        } catch (e) { console.error('Leagues load failed:', e); }
+    }
+    var q = false;
+    function later() { if (q) return; q = true; requestAnimationFrame(function () { q = false; render(); }); }
+    ['fz-board', 'fz-who'].forEach(function (id) {
+        var e = $(id); if (e) new MutationObserver(function () { later(); if (id === 'fz-who') load(); }).observe(e, { childList: true, subtree: true });
+    });
+    new MutationObserver(function () { render(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+
+    var strip = document.querySelector('.fx-strip');
+    if (strip) strip.addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-t="board"]'); if (!b) return;
+        e.stopPropagation();
+        strip.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, true);
+
+    setTimeout(load, 1500);
+    setInterval(function () { if (fp.classList.contains('active')) load(); }, 60000);
+})();
+</script>
 </body>
 </html>
