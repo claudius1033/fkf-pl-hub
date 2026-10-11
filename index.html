@@ -5199,6 +5199,7 @@ document.querySelectorAll('body').forEach(function (b) {
 .tu-p{color:#C3C8D6;line-height:1.55;font-size:.95rem}
 .lg-doc h4{margin:16px 0 6px;font-size:.95rem}.lg-doc p,.lg-doc li{color:#C3C8D6;font-size:.88rem;line-height:1.55}
 .lg-doc ul{padding-left:18px;margin:6px 0}
+#lg-modal{z-index:1100}
 #ck{position:fixed;left:12px;right:12px;bottom:12px;z-index:3600;max-width:760px;margin:0 auto;background:#12141C;border:1px solid #232735;border-radius:14px;padding:14px 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;box-shadow:0 12px 40px rgba(0,0,0,.6)}
 #ck p{flex:1;min-width:220px;margin:0;font-size:.82rem;color:#C3C8D6;line-height:1.45}
 #ck button{font-family:inherit;font-weight:700;font-size:.8rem;padding:10px 16px;border-radius:8px;cursor:pointer;border:1px solid #232735;background:rgba(255,255,255,.06);color:#fff}
@@ -5214,7 +5215,7 @@ document.querySelectorAll('body').forEach(function (b) {
 (function () {
     var fp = document.getElementById('fantasy-panel');
     if (!fp || document.getElementById('fg-gate') || !window.fkfFan) return;
-    var CO = { name: '[Your name or company]', email: '[your email address]', site: 'kplhub.vercel.app' };
+    var CO = { name: 'Sayari One', email: 'claudiusmbinda6@gmail.com', site: 'kplhub.vercel.app' };
 
     function $(id) { return document.getElementById(id); }
     function L(a, b) { return document.documentElement.lang === 'sw' ? b : a; }
@@ -5497,7 +5498,7 @@ document.querySelectorAll('body').forEach(function (b) {
     document.addEventListener('click', async function (e) {
         var t;
         if ((t = e.target.closest('[data-x]'))) { $(t.dataset.x).classList.remove('active'); return; }
-        if ((t = e.target.closest('[data-doc]'))) { openDoc(t.dataset.doc); return; }
+        if ((t = e.target.closest('[data-doc]'))) { e.preventDefault(); openDoc(t.dataset.doc); return; }
         if ((t = e.target.closest('#ck [data-c]'))) {
             rawSet.call(localStorage, 'fkf_consent', t.dataset.c);
             if (t.dataset.c !== 'all') PREF.forEach(function (k) { try { localStorage.removeItem(k); } catch (x) {} });
@@ -5571,12 +5572,16 @@ document.querySelectorAll('body').forEach(function (b) {
     })();
     setTimeout(function () { fp.classList.remove('fx-wait'); }, 4000);
 })();
-</script><style>
+</script>
+<style>
 #adm-pill { display: none !important; }
 html.adm-show #adm-pill, body.is-admin #adm-pill { display: block !important; }
 </style>
 <script>
 (function () {
+    /* The Admin login button is hidden from visitors.
+       Open the site once with #admin on the end of the address (for example kplhub.vercel.app/#admin)
+       and the button stays visible on that device. Open it with #noadmin to hide it again. */
     var KEY = 'fkf_adm_show', h = (location.hash || '').toLowerCase(), show = false;
     try {
         if (h === '#admin') localStorage.setItem(KEY, '1');
