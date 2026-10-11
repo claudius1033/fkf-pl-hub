@@ -1,11 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="/install-prompt.js" defer></script>
-    <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#E31B23">
-<link rel="apple-touch-icon" href="/icon-192.png">
-<script>if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js'); }); }</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FKF PL Network Hub</title>
@@ -4539,6 +4534,187 @@ document.querySelectorAll('body').forEach(function (b) {
 </style>
 <script>
 (function () {
+    var realFetch = window.fetch.bind(window);
+    var AUTH = DB_URL.replace('/rest/v1', '/auth/v1');
+    var STORE = 'fkf_fan_session';
+    var sess = null, listeners = [], refreshing = null, hashInfo = null;
+
+    function consent() { try { return localStorage.getItem('fkf_consent'); } catch (e) { return null; } }
+    function persist() {
+        try {
+            if (sess && consent() === 'all') localStorage.setItem(STORE, JSON.stringify(sess));
+            else localStorage.removeItem(STORE);
+        } catch (e) {}
+    }
+    function emit(ev, data) { listeners.forEach(function (f) { try { f(ev, data); } catch (e) { console.error(e); } }); }
+    function json(status, body) { return new Response(body === undefined ? null : JSON.stringify(body), { status: status, headers: { 'Content-Type': 'application/json' } }); }
+    function hdr(token) { return { 'apikey': DB_KEY, 'Authorization': 'Bearer ' + (token || DB_KEY), 'Content-Type': 'application/json' }; }
+    function redirect() { return encodeURIComponent(location.origin + location.pathname); }
+    function mk(j) {
+        var u = j.user || (sess && sess.user) || {};
+        return { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: Math.floor(Date.now() / 1000) + (j.expires_in || 3600),
+                 user: { id: u.id, email: u.email, meta: u.user_metadata || {} } };
+    }
+    function keep(s) { sess = s; persist(); }
+
+    try { var raw = localStorage.getItem(STORE); if (raw && consent() === 'all') sess = JSON.parse(raw); } catch (e) { sess = null; }
+
+    async function refresh() {
+        if (!sess) return;
+        if (sess.expires_at - Math.floor(Date.now() / 1000) > 60) return;
+        if (!refreshing) {
+            refreshing = (async function () {
+                try {
+                    var r = await realFetch(AUTH + '/token?grant_type=refresh_token', { method: 'POST', headers: hdr(), body: JSON.stringify({ refresh_token: sess.refresh_token }) });
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    keep(mk(await r.json()));
+                } catch (e) { keep(null); emit('signed_out', { expired: true }); }
+                refreshing = null;
+            })();
+        }
+        return refreshing;
+    }
+    async function token() { await refresh(); return sess ? sess.access_token : null; }
+
+    async function authCall(path, body, tok, method) {
+        var r = await realFetch(AUTH + path, { method: method || 'POST', headers: hdr(tok), body: body ? JSON.stringify(body) : undefined });
+        var j = {}; try { j = await r.json(); } catch (e) {}
+        return { ok: r.ok, status: r.status, j: j };
+    }
+    function why(j) {
+        var c = j.error_code || j.code || '', m = j.msg || j.error_description || j.message || '';
+        return { code: String(c), message: m };
+    }
+
+    async function rpc(fn, args) {
+        var t = await token();
+        if (!t) return { ok: false, error: 'auth' };
+        var r = await realFetch(DB_URL + '/rpc/' + fn, { method: 'POST', headers: hdr(t), body: JSON.stringify(args || {}) });
+        if (r.status === 401) return { ok: false, error: 'auth' };
+        if (!r.ok) throw new Error(fn + ' HTTP ' + r.status);
+        return r.json();
+    }
+
+    var api = window.fkfFan = {
+        on: function (f) { listeners.push(f); },
+        user: function () { return sess ? sess.user : null; },
+        signedIn: function () { return !!sess; },
+        rpc: rpc,
+        sync: persist,
+        signUp: async function (email, password, teamName) {
+            var x = await authCall('/signup?redirect_to=' + redirect(), { email: email, password: password, data: { team_name: teamName } });
+            if (!x.ok) return { ok: false, error: why(x.j) };
+            if (x.j.access_token) { keep(mk(x.j)); emit('signed_in', { source: 'signup' }); return { ok: true, session: true }; }
+            return { ok: true, session: false, existing: !!(x.j.identities && x.j.identities.length === 0) };
+        },
+        signIn: async function (email, password) {
+            var x = await authCall('/token?grant_type=password', { email: email, password: password });
+            if (!x.ok) return { ok: false, error: why(x.j) };
+            keep(mk(x.j)); emit('signed_in', { source: 'login' });
+            return { ok: true };
+        },
+        signOut: async function () {
+            var t = sess && sess.access_token; keep(null);
+            if (t) { try { await realFetch(AUTH + '/logout', { method: 'POST', headers: hdr(t) }); } catch (e) {} }
+            emit('signed_out', {});
+        },
+        recover: async function (email) {
+            var x = await authCall('/recover?redirect_to=' + redirect(), { email: email });
+            return x.ok ? { ok: true } : { ok: false, error: why(x.j) };
+        },
+        setPassword: async function (password) {
+            var t = await token(); if (!t) return { ok: false, error: { code: 'no_session', message: '' } };
+            var x = await authCall('/user', { password: password }, t, 'PUT');
+            return x.ok ? { ok: true } : { ok: false, error: why(x.j) };
+        },
+        deleteAccount: async function () {
+            var r = await rpc('fan_delete_account', {});
+            if (r.ok) { keep(null); emit('signed_out', { deleted: true }); }
+            return r;
+        },
+        hash: function () { return hashInfo; }
+    };
+
+    /* a sign-in link from an email lands here with the session in the address */
+    var hashDone = (async function () {
+        var h = location.hash ? new URLSearchParams(location.hash.replace(/^#/, '')) : null;
+        if (!h) return;
+        if (h.get('error')) {
+            hashInfo = { error: h.get('error_code') || h.get('error'), message: h.get('error_description') || '' };
+            history.replaceState(null, '', location.pathname + location.search);
+            return;
+        }
+        if (h.get('access_token')) {
+            var type = h.get('type') || 'signup';
+            var tok = h.get('access_token'), u = {};
+            try { var r = await realFetch(AUTH + '/user', { headers: hdr(tok) }); if (r.ok) u = await r.json(); } catch (e) {}
+            keep(mk({ access_token: tok, refresh_token: h.get('refresh_token'), expires_in: Number(h.get('expires_in')) || 3600, user: u }));
+            history.replaceState(null, '', location.pathname + location.search);
+            hashInfo = { type: type };
+        }
+    })();
+
+    var ready = refresh();
+    api.whenReady = function () { return Promise.all([ready, hashDone]); };
+    var NOTE = function (text) { setTimeout(function () { var m = document.getElementById('fz-msg'); if (m) { m.textContent = text; m.className = 'fz-msg'; } }, 60); };
+    var SQUAD_MSG = 'That squad is not valid. Pick 15 different players and a captain from your starting XI.';
+    function ids(a) { return (a || []).map(Number); }
+
+    window.fetch = async function (input, init) {
+        var url = typeof input === 'string' ? input : (input && input.url) || '';
+        var rest = url.indexOf(DB_URL + '/fantasy_') === 0, call = url.indexOf(DB_URL + '/rpc/fantasy_league_') === 0;
+        if (!rest && !call) return realFetch(input, init);
+        var method = ((init && init.method) || 'GET').toUpperCase();
+        var u = new URL(url), path = u.pathname.replace(/^.*\/rest\/v1/, ''), q = u.searchParams, body = null;
+        try { body = init && init.body ? JSON.parse(init.body) : null; } catch (x) {}
+        try {
+            await ready;
+            if (call) {
+                var fn = path.replace('/rpc/fantasy_league_', ''), map = { create: 'fan_league_create', join: 'fan_league_join', leave: 'fan_league_leave', codes: 'fan_league_codes' };
+                var args = fn === 'create' ? { p_name: body.p_name } : fn === 'join' ? { p_code: body.p_code } : fn === 'leave' ? { p_league: body.p_league } : {};
+                if (!map[fn]) return realFetch(input, init);
+                return json(200, await rpc(map[fn], args));
+            }
+            if (method === 'GET' && path === '/fantasy_teams' && q.get('select') === '*') {
+                if (!sess) return json(200, []);
+                var me = await rpc('fan_me', {});
+                return json(200, me.ok ? [me.team] : []);
+            }
+            if (method === 'POST' && path === '/fantasy_teams' && body) {
+                var c = await rpc('fan_register', { p_name: body.team_name });
+                if (!c.ok) { NOTE(c.error === 'taken' ? 'That team name is taken.' : c.error === 'auth' ? 'Please log in first.' : 'Team names can be 3 to 30 characters.'); return json(400, { error: c.error }); }
+                var up = await rpc('fan_update', { p_ids: ids(body.player_ids), p_cap: Number(body.captain_id) });
+                if (!up.ok) { NOTE(SQUAD_MSG); return json(400, { error: up.error }); }
+                var t2 = await rpc('fan_me', {});
+                return json(201, t2.ok ? [t2.team] : [c.team]);
+            }
+            if (method === 'PATCH' && path === '/fantasy_teams' && body) {
+                var r = await rpc('fan_update', { p_ids: ids(body.player_ids), p_cap: Number(body.captain_id) });
+                if (!r.ok) {
+                    NOTE(r.error === 'auth' ? 'Please log in again.' : SQUAD_MSG);
+                    return json(r.error === 'auth' ? 401 : 400, { error: r.error });
+                }
+                return new Response(null, { status: 204 });
+            }
+            if (method === 'POST' && path === '/fantasy_gw_picks' && body) {
+                var rows = Array.isArray(body) ? body : [body];
+                for (var i = 0; i < rows.length; i++) {
+                    var b = rows[i];
+                    var s = await rpc('fan_set_pick', { p_gw: Number(b.gameweek), p_ids: ids(b.player_ids), p_cap: Number(b.captain_id), p_chip: b.chip || null });
+                    if (!s.ok) return json(s.error === 'auth' ? 401 : 400, { error: s.error });
+                }
+                return new Response(null, { status: 201 });
+            }
+        } catch (err) {
+            console.error('Fantasy request failed:', err);
+            return json(500, { error: String(err.message || err) });
+        }
+        return realFetch(input, init);
+    };
+})();
+</script>
+<script>
+(function () {
     var AUTH = DB_URL.replace('/rest/v1', '/auth/v1');
     var STORE = 'fkf_admin_session';
     var ADMIN_TABLES = ['teams', 'players', 'matches', 'goals', 'news', 'news_articles', 'videos', 'section_banners', 'player_injuries', 'transfers'];
@@ -4631,6 +4807,7 @@ document.querySelectorAll('body').forEach(function (b) {
                 });
                 var j = await r.json();
                 if (!r.ok) throw new Error(j.error_description || j.msg || ('HTTP ' + r.status));
+                if (!j.user || j.user.id !== '91b2af2b-dd65-48ee-8e45-600efd220d78') throw new Error('This account is not an admin.');
                 keep(fromToken(j));
                 el('adm-pass').value = ''; el('adm-modal').classList.remove('open');
                 toast('Admin mode on.');
@@ -4641,87 +4818,6 @@ document.querySelectorAll('body').forEach(function (b) {
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
     window.fkfAdmin = { isAdmin: function () { return !!sess; } };
-})();
-</script>
-<script>
-(function () {
-    var realFetch = window.fetch.bind(window);
-    var RPC = DB_URL + '/rpc/';
-    var pins = {};
-
-    function json(status, body) {
-        return new Response(body === undefined ? null : JSON.stringify(body), { status: status, headers: { 'Content-Type': 'application/json' } });
-    }
-    async function rpc(fn, args) {
-        var r = await realFetch(RPC + fn, {
-            method: 'POST',
-            headers: { 'apikey': DB_KEY, 'Authorization': 'Bearer ' + DB_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify(args)
-        });
-        if (!r.ok) throw new Error(fn + ' HTTP ' + r.status);
-        return r.json();
-    }
-    function storedPin(id) {
-        if (pins[id]) return pins[id];
-        var e = document.getElementById('fz-pin');
-        if (e && /^\d{4}$/.test(e.value.trim())) return e.value.trim();
-        try { var s = JSON.parse(localStorage.getItem('fan_team') || 'null'); if (s && /^\d{4}$/.test(s.pin)) return s.pin; } catch (x) {}
-        return '';
-    }
-    function note(text) {
-        setTimeout(function () { var m = document.getElementById('fz-msg'); if (m) { m.textContent = text; m.className = 'fz-msg'; } }, 60);
-    }
-    function ids(a) { return (a || []).map(Number); }
-
-    window.fetch = async function (input, init) {
-        var url = typeof input === 'string' ? input : (input && input.url) || '';
-        if (url.indexOf(DB_URL + '/fantasy_') !== 0) return realFetch(input, init);
-        var method = ((init && init.method) || 'GET').toUpperCase();
-        var u = new URL(url), path = u.pathname.replace(/^.*\/rest\/v1/, ''), q = u.searchParams;
-        var body = null;
-        try { body = init && init.body ? JSON.parse(init.body) : null; } catch (x) {}
-        try {
-            if (method === 'GET' && path === '/fantasy_teams' && q.get('select') === '*' && q.get('pin')) {
-                var name = (q.get('team_name') || '').replace(/^eq\./, ''), pin = q.get('pin').replace(/^eq\./, '');
-                var res = await rpc('fantasy_login', { p_name: name, p_pin: pin });
-                if (!res.ok) return json(200, []);
-                pins[res.team.id] = pin;
-                return json(200, [res.team]);
-            }
-            if (method === 'POST' && path === '/fantasy_teams' && body && body.pin) {
-                var c = await rpc('fantasy_create', { p_name: body.team_name, p_pin: body.pin, p_ids: ids(body.player_ids), p_cap: Number(body.captain_id) });
-                if (!c.ok) {
-                    note(c.error === 'taken' ? 'That team name is taken. If it is yours, use Load my team.' : c.error === 'pin' ? 'The PIN must be exactly 4 digits.' : c.error === 'name' ? 'Team names can be 1 to 30 characters.' : 'That squad is not valid. Pick 15 different players and a captain from your starting XI.');
-                    return json(400, { error: c.error });
-                }
-                pins[c.team.id] = body.pin;
-                return json(201, [c.team]);
-            }
-            if (method === 'PATCH' && path === '/fantasy_teams' && q.get('id') && body) {
-                var id = q.get('id').replace(/^eq\./, ''), p = (q.get('pin') || '').replace(/^eq\./, '');
-                var r = await rpc('fantasy_update', { p_id: id, p_pin: p, p_ids: ids(body.player_ids), p_cap: Number(body.captain_id) });
-                if (!r.ok) {
-                    note(r.error === 'auth' ? 'PIN not accepted. After 5 wrong tries a team is locked for 15 minutes.' : 'That squad is not valid. Pick 15 different players and a captain from your starting XI.');
-                    return json(r.error === 'auth' ? 403 : 400, { error: r.error });
-                }
-                pins[id] = p;
-                return new Response(null, { status: 204 });
-            }
-            if (method === 'POST' && path === '/fantasy_gw_picks' && body) {
-                var rows = Array.isArray(body) ? body : [body];
-                for (var i = 0; i < rows.length; i++) {
-                    var b = rows[i], tid = String(b.team_id);
-                    var s = await rpc('fantasy_set_pick', { p_id: tid, p_pin: storedPin(tid), p_gw: Number(b.gameweek), p_ids: ids(b.player_ids), p_cap: Number(b.captain_id), p_chip: b.chip || null });
-                    if (!s.ok) return json(s.error === 'auth' ? 403 : 400, { error: s.error });
-                }
-                return new Response(null, { status: 201 });
-            }
-        } catch (err) {
-            console.error('Fantasy request failed:', err);
-            return json(500, { error: String(err.message || err) });
-        }
-        return realFetch(input, init);
-    };
 })();
 </script>
 <script>
@@ -5112,12 +5208,13 @@ document.querySelectorAll('body').forEach(function (b) {
 #fkf-foot a{color:#C3C8D6;cursor:pointer;margin:0 8px;font-weight:600}
 #fkf-foot a:hover{color:#FFC72C}
 #matches-container .card.fav{box-shadow:0 0 0 2px #FFC72C,0 8px 22px rgba(0,0,0,.28)}
+.au-link{display:inline-block;margin:2px 0 8px;color:#FFC72C;font-weight:700;font-size:.82rem;cursor:pointer}
 </style>
 <script>
 (function () {
     var fp = document.getElementById('fantasy-panel');
-    if (!fp || document.getElementById('fg-gate')) return;
-    var CO = { name: '[Your name or company]', email: '[your email address]', site: 'fkf-pl-hub.vercel.app' };
+    if (!fp || document.getElementById('fg-gate') || !window.fkfFan) return;
+    var CO = { name: '[Your name or company]', email: '[your email address]', site: 'kplhub.vercel.app' };
 
     function $(id) { return document.getElementById(id); }
     function L(a, b) { return document.documentElement.lang === 'sw' ? b : a; }
@@ -5128,24 +5225,10 @@ document.querySelectorAll('body').forEach(function (b) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
     }
-    async function rpc(name, args) {
-        var r = await fetch(DB_URL + '/rpc/' + name, { method: 'POST', headers: headers, body: JSON.stringify(args) });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-    }
     function teams() { return Object.keys(teamMap).map(function (k) { return teamMap[k]; }).sort(function (a, b) { return a.name.localeCompare(b.name); }); }
     function players() { var o = []; Object.keys(playersByTeam).forEach(function (k) { o = o.concat(playersByTeam[k]); }); return o; }
     function meName() { var b = document.querySelector('#fz-who b'); return b ? b.textContent.trim() : ''; }
     function loggedIn() { return !!meName(); }
-    async function myId() {
-        var r = await get('/fantasy_teams?select=id&team_name=eq.' + encodeURIComponent(meName()));
-        return r[0] ? String(r[0].id) : null;
-    }
-    function pin() {
-        var p = ($('fz-pin') || {}).value || '';
-        if (!/^\d{4}$/.test(p)) p = prompt(L('Enter your 4-digit PIN', 'Weka PIN yako ya tarakimu 4')) || '';
-        return p;
-    }
 
     /* ---------- cookies and storage consent ---------- */
     var PREF = ['fan_team', 'fkf_lang'];
@@ -5156,16 +5239,16 @@ document.querySelectorAll('body').forEach(function (b) {
         if (consent() || $('ck')) return;
         var b = document.createElement('div');
         b.id = 'ck';
-        b.innerHTML = '<p>' + L('We use a small amount of browser storage to run the site. With "Accept all" we also remember your login and language. We use no advertising or tracking cookies. ', 'Tunatumia hifadhi ndogo ya kivinjari kuendesha tovuti. Ukikubali yote, tunakumbuka akaunti na lugha yako. Hatutumii vidakuzi vya matangazo wala ufuatiliaji. ') + '<a data-doc="cookies">' + L('Details', 'Maelezo') + '</a></p><button data-c="essential">' + L('Essential only', 'Muhimu pekee') + '</button><button class="pri" data-c="all">' + L('Accept all', 'Kubali yote') + '</button>';
+        b.innerHTML = '<p>' + L('We use a small amount of browser storage to run the site. With "Accept all" we also keep you logged in and remember your language. We use no advertising or tracking cookies. ', 'Tunatumia hifadhi ndogo ya kivinjari kuendesha tovuti. Ukikubali yote, tunakuweka umeingia na kukumbuka lugha yako. Hatutumii vidakuzi vya matangazo wala ufuatiliaji. ') + '<a data-doc="cookies">' + L('Details', 'Maelezo') + '</a></p><button data-c="essential">' + L('Essential only', 'Muhimu pekee') + '</button><button class="pri" data-c="all">' + L('Accept all', 'Kubali yote') + '</button>';
         document.body.appendChild(b);
     }
     banner();
 
     /* ---------- legal pages ---------- */
     var DOCS = {
-        terms: ['Terms of use', '<h4>1. About</h4><p>FKF PL Network is a free fan hub and fantasy game for the Kenyan Premier League, run by ' + CO.name + '.</p><h4>2. Playing fairly</h4><ul><li>One team per person. No cheating, no offensive team names.</li><li>We may rename or remove teams and correct results or points at any time.</li></ul><h4>3. Fantasy game</h4><p>The game is free. Points and rankings are unofficial. No prizes are promised unless announced here.</p><h4>4. Content</h4><p>Club names, crests and photos belong to their owners and are shown for information.</p><h4>5. The service</h4><p>The site is provided as it is and may change or pause without notice.</p><h4>6. Contact</h4><p>' + CO.email + '</p>'],
-        privacy: ['Privacy policy', '<h4>Who we are</h4><p>' + CO.name + ' runs ' + CO.site + '. Contact: ' + CO.email + '.</p><h4>What we collect</h4><ul><li>Your team name and a hashed PIN (we cannot read your PIN).</li><li>Your squads, captains, chips and leagues.</li><li>Optional favourites: club, manager, player, stadium.</li><li>Technical logs kept by our hosts (such as IP address).</li></ul><h4>Why</h4><p>To run the game, show rankings and personalise your page. We do not sell data and do not use advertising or analytics.</p><h4>Who can see it</h4><p>Your team name, squad and favourites are visible to other players. Do not use your real name if you do not want it shown.</p><h4>Services we use</h4><p>Supabase (database), Vercel (hosting) and YouTube (videos, loaded in privacy mode when you press play).</p><h4>Your rights</h4><p>Under the Kenya Data Protection Act, 2019 you can ask to see, correct or delete your data, or object to its use. Email ' + CO.email + '. You can also complain to the Office of the Data Protection Commissioner (odpc.go.ke).</p><h4>Children</h4><p>If you are under 18, play only with the permission of a parent or guardian.</p>'],
-        cookies: ['Cookies and storage', '<h4>Always on</h4><ul><li>Your cookie choice.</li><li>Site owner login (owner only).</li></ul><h4>Only if you press Accept all</h4><ul><li>Remember my team login on this device.</li><li>Remember my language.</li></ul><h4>Not used</h4><p>No advertising cookies and no analytics. Video thumbnails load from YouTube, and videos play through youtube-nocookie.com.</p><h4>Change your choice</h4><p>Press "Cookie settings" in the footer at any time.</p>']
+        terms: ['Terms of use', '<h4>1. About</h4><p>FKF PL Network is a free fan hub and fantasy game for the Kenyan Premier League, run by ' + CO.name + '.</p><h4>2. Your account</h4><ul><li>One account and one team per person. Keep your password private.</li><li>No cheating and no offensive team names. We may rename or remove teams and correct results or points at any time.</li></ul><h4>3. Fantasy game</h4><p>The game is free. Points and rankings are unofficial. No prizes are promised unless announced here.</p><h4>4. Content</h4><p>Club names, crests and photos belong to their owners and are shown for information.</p><h4>5. The service</h4><p>The site is provided as it is and may change or pause without notice.</p><h4>6. Contact</h4><p>' + CO.email + '</p>'],
+        privacy: ['Privacy policy', '<h4>Who we are</h4><p>' + CO.name + ' runs ' + CO.site + '. Contact: ' + CO.email + '.</p><h4>What we collect</h4><ul><li>Your email address and password. The password is stored scrambled by our login provider, so we cannot read it.</li><li>Your team name, squads, captains, chips and leagues.</li><li>Optional favourites: club, manager, player, stadium.</li><li>Technical logs kept by our hosts (such as IP address).</li></ul><h4>Why</h4><p>To let you log in, run the game, show rankings and personalise your page. We use your email only to confirm your address and to reset your password. We send no marketing. We do not sell data and do not use advertising or analytics.</p><h4>Who can see it</h4><p>Your team name, squad and favourites are visible to other players. Your email address is never shown to other players. Do not use your real name as a team name if you do not want it shown.</p><h4>Services we use</h4><p>Supabase (database and login), Vercel (hosting), an email delivery service for confirmation and reset emails, and YouTube (videos, loaded in privacy mode when you press play).</p><h4>Your rights</h4><p>Under the Kenya Data Protection Act, 2019 you can ask to see, correct or delete your data, or object to its use. You can delete your account and team yourself with "Delete my account" on the Fantasy page. You can also email ' + CO.email + ', or complain to the Office of the Data Protection Commissioner (odpc.go.ke).</p><h4>Children</h4><p>If you are under 18, play only with the permission of a parent or guardian.</p>'],
+        cookies: ['Cookies and storage', '<h4>Always on</h4><ul><li>Your cookie choice.</li><li>Your login, while the page stays open.</li><li>Site owner login (owner only).</li></ul><h4>Only if you press Accept all</h4><ul><li>Keep me logged in on this device.</li><li>Remember my language.</li></ul><h4>Not used</h4><p>No advertising cookies and no analytics. Video thumbnails load from YouTube, and videos play through youtube-nocookie.com.</p><h4>Change your choice</h4><p>Press "Cookie settings" in the footer at any time.</p>']
     };
     var lg = document.createElement('div');
     lg.id = 'lg-modal'; lg.className = 'modal-screen';
@@ -5199,19 +5282,41 @@ document.querySelectorAll('body').forEach(function (b) {
         tu.classList.add('active');
     }
 
-    /* ---------- register / log in / profile ---------- */
+    /* ---------- account window ---------- */
     var au = document.createElement('div');
     au.id = 'au-modal'; au.className = 'modal-screen';
     au.innerHTML = '<div class="result-modal-frame"><button class="close-btn" data-x="au-modal">&times;</button><div id="au-body"></div></div>';
     document.body.appendChild(au);
     function msgHtml(m, ok) { return '<div class="result-error"' + (ok ? ' style="color:#10B981"' : '') + '>' + esc(m || '') + '</div>'; }
-    function showAuth(v, msg, name) {
-        var h = '<div class="au-tabs"><button data-v="login"' + (v === 'login' ? ' class="on"' : '') + '>' + L('Log in', 'Ingia') + '</button><button data-v="register"' + (v === 'register' ? ' class="on"' : '') + '>' + L('Register', 'Jisajili') + '</button></div>';
-        h += '<div class="inj-field"><label for="au-n">' + L('Team name', 'Jina la timu') + '</label><input type="text" id="au-n" maxlength="30" value="' + esc(name || '') + '"></div>' +
-            '<div class="inj-field"><label for="au-p">' + L('4-digit PIN', 'PIN ya tarakimu 4') + '</label><input type="password" id="au-p" maxlength="4" inputmode="numeric" autocomplete="off"></div>';
-        if (v === 'register') h += '<div class="inj-field"><label for="au-p2">' + L('Repeat PIN', 'Rudia PIN') + '</label><input type="password" id="au-p2" maxlength="4" inputmode="numeric" autocomplete="off"></div>' +
-            '<label class="au-chk"><input type="checkbox" id="au-t"><span>' + L('I agree to the ', 'Nakubali ') + '<a data-doc="terms">' + L('Terms', 'Masharti') + '</a>' + L(' and ', ' na ') + '<a data-doc="privacy">' + L('Privacy policy', 'Sera ya faragha') + '</a>. ' + L('If I am under 18, a parent or guardian allows me to play.', 'Nikiwa chini ya miaka 18, mzazi au mlezi amenikubalia.') + '</span></label>';
-        h += msgHtml(msg) + '<div class="result-actions"><button class="result-cancel-btn" data-x="au-modal">' + L('Cancel', 'Ghairi') + '</button><button class="result-save-btn" data-a="' + (v === 'login' ? 'do-login' : 'do-reg') + '">' + (v === 'login' ? L('Log in', 'Ingia') : L('Register now', 'Jisajili sasa')) + '</button></div>';
+    function fld(id, label, type, val, extra) {
+        return '<div class="inj-field"><label for="' + id + '">' + label + '</label><input type="' + type + '" id="' + id + '" value="' + esc(val || '') + '" ' + (extra || '') + '></div>';
+    }
+    function showAuth(v, msg, f, ok) {
+        f = f || {};
+        var h = '', tabs = v === 'login' || v === 'register';
+        if (tabs) h += '<div class="au-tabs"><button data-v="login"' + (v === 'login' ? ' class="on"' : '') + '>' + L('Log in', 'Ingia') + '</button><button data-v="register"' + (v === 'register' ? ' class="on"' : '') + '>' + L('Create account', 'Fungua akaunti') + '</button></div>';
+        if (v === 'login') {
+            h += fld('au-e', L('Email', 'Barua pepe'), 'email', f.email, 'autocomplete="username"') + fld('au-p', L('Password', 'Nenosiri'), 'password', '', 'autocomplete="current-password"') +
+                '<a class="au-link" data-v="forgot">' + L('Forgot password?', 'Umesahau nenosiri?') + '</a>' + msgHtml(msg, ok) +
+                '<div class="result-actions"><button class="result-cancel-btn" data-x="au-modal">' + L('Cancel', 'Ghairi') + '</button><button class="result-save-btn" data-a="do-login">' + L('Log in', 'Ingia') + '</button></div>';
+        } else if (v === 'register') {
+            h += fld('au-n', L('Team name', 'Jina la timu'), 'text', f.name, 'maxlength="30"') + fld('au-e', L('Email', 'Barua pepe'), 'email', f.email, 'autocomplete="username"') +
+                fld('au-p', L('Password (8 or more characters)', 'Nenosiri (herufi 8 au zaidi)'), 'password', '', 'autocomplete="new-password"') + fld('au-p2', L('Repeat password', 'Rudia nenosiri'), 'password', '', 'autocomplete="new-password"') +
+                '<label class="au-chk"><input type="checkbox" id="au-t"><span>' + L('I agree to the ', 'Nakubali ') + '<a data-doc="terms">' + L('Terms', 'Masharti') + '</a>' + L(' and ', ' na ') + '<a data-doc="privacy">' + L('Privacy policy', 'Sera ya faragha') + '</a>. ' + L('If I am under 18, a parent or guardian allows me to play.', 'Nikiwa chini ya miaka 18, mzazi au mlezi amenikubalia.') + '</span></label>' + msgHtml(msg, ok) +
+                '<div class="result-actions"><button class="result-cancel-btn" data-x="au-modal">' + L('Cancel', 'Ghairi') + '</button><button class="result-save-btn" data-a="do-reg">' + L('Create account', 'Fungua akaunti') + '</button></div>';
+        } else if (v === 'forgot') {
+            h += '<h3>' + L('Reset your password', 'Weka upya nenosiri') + '</h3><p class="result-modal-sub">' + L('Enter your email and we will send you a link.', 'Weka barua pepe yako tukutumie kiungo.') + '</p>' + fld('au-e', L('Email', 'Barua pepe'), 'email', f.email, 'autocomplete="username"') + msgHtml(msg, ok) +
+                '<div class="result-actions"><button class="result-cancel-btn" data-v="login">' + L('Back', 'Rudi') + '</button><button class="result-save-btn" data-a="do-forgot">' + L('Send link', 'Tuma kiungo') + '</button></div>';
+        } else if (v === 'reset' || v === 'pw') {
+            h += '<h3>' + (v === 'reset' ? L('Choose a new password', 'Chagua nenosiri jipya') : L('Change password', 'Badilisha nenosiri')) + '</h3>' + fld('au-p', L('New password (8 or more characters)', 'Nenosiri jipya (herufi 8 au zaidi)'), 'password', '', 'autocomplete="new-password"') + fld('au-p2', L('Repeat password', 'Rudia nenosiri'), 'password', '', 'autocomplete="new-password"') + msgHtml(msg, ok) +
+                '<div class="result-actions"><button class="result-cancel-btn" data-x="au-modal">' + L('Cancel', 'Ghairi') + '</button><button class="result-save-btn" data-a="do-reset">' + L('Save password', 'Hifadhi nenosiri') + '</button></div>';
+        } else if (v === 'sent') {
+            h += '<h3>' + L('Check your inbox', 'Angalia barua pepe yako') + '</h3><p class="tu-p">' + L('We sent a link to ', 'Tumetuma kiungo kwa ') + '<b>' + esc(f.email) + '</b>' + L('. Open it to confirm your email, then you are in. It can take a minute, and it may be in your spam folder. If you already have an account, log in instead or reset your password.', '. Kifungue kuthibitisha barua pepe yako, kisha utakuwa umeingia. Inaweza kuchukua dakika moja, na inaweza kuwa kwenye spam. Ukiwa na akaunti tayari, ingia au weka upya nenosiri.') + '</p>' +
+                '<div class="result-actions"><button class="result-cancel-btn" data-v="forgot">' + L('Reset password', 'Weka upya nenosiri') + '</button><button class="result-save-btn" data-v="login">' + L('Log in', 'Ingia') + '</button></div>';
+        } else if (v === 'name') {
+            h += '<h3>' + L('Choose your team name', 'Chagua jina la timu yako') + '</h3>' + fld('au-n', L('Team name', 'Jina la timu'), 'text', f.name, 'maxlength="30"') + msgHtml(msg, ok) +
+                '<div class="result-actions"><button class="result-save-btn" data-a="do-name">' + L('Continue', 'Endelea') + '</button></div>';
+        }
         $('au-body').innerHTML = h; au.classList.add('active');
     }
     var PLAYER_MAP = {};
@@ -5231,37 +5336,116 @@ document.querySelectorAll('body').forEach(function (b) {
             '<div class="result-error" id="pf-err"></div><div class="result-actions"><button class="result-cancel-btn" data-a="' + (first ? 'pf-skip' : 'close-au') + '">' + (first ? L('Skip', 'Ruka') : L('Cancel', 'Ghairi')) + '</button><button class="result-save-btn" data-a="pf-save" data-first="' + (first ? 1 : 0) + '">' + L('Save', 'Hifadhi') + '</button></div>';
         au.classList.add('active');
     }
-    function errText(e) { return { name: L('Use 3 to 30 characters.', 'Tumia herufi 3 hadi 30.'), pin: L('The PIN must be exactly 4 digits.', 'PIN lazima iwe tarakimu 4.'), taken: L('That team name is taken.', 'Jina hilo limechukuliwa.') }[e] || L('Something went wrong.', 'Kuna hitilafu.'); }
 
-    async function doLogin() {
-        var n = $('au-n').value.trim(), p = $('au-p').value.trim();
-        if (!n || !/^\d{4}$/.test(p)) { showAuth('login', L('Enter your team name and 4-digit PIN.', 'Weka jina la timu na PIN ya tarakimu 4.'), n); return; }
-        $('fz-name').value = n; $('fz-pin').value = p;
-        try { await window.fzLoad(); } catch (e) {}
-        if (loggedIn()) { au.classList.remove('active'); var m = $('fz-msg'); if (m) m.textContent = ''; sync(); }
-        else showAuth('login', L('Wrong name or PIN. Five wrong tries lock the team for 15 minutes.', 'Jina au PIN si sahihi. Majaribio matano yasiyo sahihi hufunga timu dakika 15.'), n);
+    function errMsg(e) {
+        var c = (e && e.code) || '', m = (e && e.message) || '';
+        var map = {
+            invalid_credentials: L('Wrong email or password.', 'Barua pepe au nenosiri si sahihi.'),
+            email_not_confirmed: L('Please confirm your email first. Open the link we sent you.', 'Tafadhali thibitisha barua pepe kwanza. Fungua kiungo tulichokutumia.'),
+            user_already_exists: L('That email already has an account. Log in or reset your password.', 'Barua pepe hiyo ina akaunti tayari. Ingia au weka upya nenosiri.'),
+            weak_password: L('Choose a stronger password (8 or more characters).', 'Chagua nenosiri imara (herufi 8 au zaidi).'),
+            over_email_send_rate_limit: L('Too many emails sent. Please try again in a while.', 'Barua pepe nyingi zimetumwa. Jaribu tena baadaye.'),
+            over_request_rate_limit: L('Too many tries. Please wait a few minutes.', 'Majaribio mengi. Subiri dakika chache.'),
+            email_address_invalid: L('That email address is not valid.', 'Barua pepe hiyo si sahihi.'),
+            signup_disabled: L('Sign-ups are closed right now.', 'Usajili umefungwa kwa sasa.'),
+            same_password: L('Choose a password different from your old one.', 'Chagua nenosiri tofauti na la awali.'),
+            otp_expired: L('That link has expired. Ask for a new one.', 'Kiungo hicho kimeisha muda. Omba kingine.'),
+            access_denied: L('That link is no longer valid. Ask for a new one.', 'Kiungo hicho hakifai tena. Omba kingine.')
+        };
+        return map[c] || m || L('Something went wrong. Please try again.', 'Kuna hitilafu. Jaribu tena.');
     }
-    async function doReg() {
-        var n = $('au-n').value.trim(), p = $('au-p').value.trim();
-        if (p !== $('au-p2').value.trim()) { showAuth('register', L('The two PINs do not match.', 'PIN mbili hazilingani.'), n); return; }
-        if (!$('au-t').checked) { showAuth('register', L('Please accept the Terms and Privacy policy.', 'Tafadhali kubali Masharti na Sera ya faragha.'), n); return; }
-        try {
-            var r = await rpc('fantasy_register', { p_name: n, p_pin: p });
-            if (!r.ok) { showAuth('register', errText(r.error), n); return; }
-            $('fz-name').value = n; $('fz-pin').value = p;
-            await window.fzLoad();
-            await sync(); showProfile(true);
-        } catch (e) { showAuth('register', L('Could not reach the server. Have you run the accounts SQL?', 'Seva haipatikani. Umeendesha SQL ya akaunti?'), n); }
+    function nameErr(e) { return { name: L('Use 3 to 30 characters.', 'Tumia herufi 3 hadi 30.'), taken: L('That team name is taken.', 'Jina hilo limechukuliwa.'), hasteam: L('You already have a team.', 'Tayari una timu.') }[e] || L('Something went wrong.', 'Kuna hitilafu.'); }
+    function val(id) { var e = $(id); return e ? e.value.trim() : ''; }
+    var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    function busy(el, on) { if (!el) return; el.disabled = on; }
+
+    async function nameTaken(name) {
+        var p = name.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_').replace(/\*/g, '\\*');
+        try { var r = await get('/fantasy_teams?select=id&team_name=ilike.' + encodeURIComponent(p)); return r.length > 0; } catch (e) { return false; }
+    }
+    async function doLogin(btn) {
+        var f = { email: val('au-e') }, p = $('au-p').value;
+        if (!EMAIL.test(f.email) || !p) { showAuth('login', L('Enter your email and password.', 'Weka barua pepe na nenosiri.'), f); return; }
+        busy(btn, true);
+        var r = await fkfFan.signIn(f.email, p);
+        if (!r.ok) showAuth('login', errMsg(r.error), f);
+    }
+    async function doReg(btn) {
+        var f = { name: val('au-n'), email: val('au-e') }, p = $('au-p').value;
+        function bad(m) { showAuth('register', m, f); }
+        if (f.name.length < 3 || f.name.length > 30) return bad(L('Team name: use 3 to 30 characters.', 'Jina la timu: tumia herufi 3 hadi 30.'));
+        if (!EMAIL.test(f.email)) return bad(L('Enter a valid email address.', 'Weka barua pepe sahihi.'));
+        if (p.length < 8) return bad(L('The password needs 8 or more characters.', 'Nenosiri linahitaji herufi 8 au zaidi.'));
+        if (p !== $('au-p2').value) return bad(L('The two passwords do not match.', 'Manenosiri mawili hayalingani.'));
+        if (!$('au-t').checked) return bad(L('Please accept the Terms and Privacy policy.', 'Tafadhali kubali Masharti na Sera ya faragha.'));
+        busy(btn, true);
+        if (await nameTaken(f.name)) return bad(L('That team name is taken.', 'Jina hilo limechukuliwa.'));
+        var r = await fkfFan.signUp(f.email, p, f.name);
+        if (!r.ok) return bad(errMsg(r.error));
+        if (!r.session) showAuth('sent', '', f);
+    }
+    async function doForgot(btn) {
+        var f = { email: val('au-e') };
+        if (!EMAIL.test(f.email)) { showAuth('forgot', L('Enter a valid email address.', 'Weka barua pepe sahihi.'), f); return; }
+        busy(btn, true);
+        var r = await fkfFan.recover(f.email);
+        if (!r.ok) showAuth('forgot', errMsg(r.error), f);
+        else showAuth('forgot', L('If that email has an account, a reset link is on its way. Check your spam folder too.', 'Ikiwa barua pepe hiyo ina akaunti, kiungo cha kuweka upya kinakuja. Angalia pia spam.'), f, true);
+    }
+    async function doReset(btn) {
+        var p = $('au-p').value;
+        if (p.length < 8) { showAuth('reset', L('The password needs 8 or more characters.', 'Nenosiri linahitaji herufi 8 au zaidi.')); return; }
+        if (p !== $('au-p2').value) { showAuth('reset', L('The two passwords do not match.', 'Manenosiri mawili hayalingani.')); return; }
+        busy(btn, true);
+        var r = await fkfFan.setPassword(p);
+        if (!r.ok) { showAuth('reset', errMsg(r.error)); return; }
+        au.classList.remove('active'); toast(L('Password updated.', 'Nenosiri limebadilishwa.'));
+        afterSignIn();
+    }
+    async function doName(btn) {
+        var n = val('au-n'); busy(btn, true);
+        var c = await fkfFan.rpc('fan_register', { p_name: n });
+        if (!c.ok) { showAuth('name', nameErr(c.error), { name: n }); return; }
+        await applyTeam(c.team); showProfile(true);
     }
     async function saveProfile(el) {
-        var first = el.dataset.first === '1', id = await myId(), p = pin(), pl = PLAYER_MAP[($('pf-pl').value || '').trim()];
+        var first = el.dataset.first === '1', pl = PLAYER_MAP[($('pf-pl').value || '').trim()];
         function num(v) { return v ? Number(v) : null; }
         try {
-            var r = await rpc('fantasy_set_profile', { p_team: id, p_pin: p, p_club: num($('pf-club').value), p_manager: num($('pf-man').value), p_player: pl || null, p_stadium: num($('pf-st').value) });
-            if (!r.ok) { $('pf-err').textContent = L('Could not save. Check your PIN.', 'Imeshindwa kuhifadhi. Angalia PIN yako.'); return; }
+            var r = await fkfFan.rpc('fan_set_profile', { p_club: num($('pf-club').value), p_manager: num($('pf-man').value), p_player: pl || null, p_stadium: num($('pf-st').value) });
+            if (!r.ok) { $('pf-err').textContent = L('Could not save. Please log in again.', 'Imeshindwa kuhifadhi. Ingia tena.'); return; }
             await sync();
-            if (first) tour(0); else au.classList.remove('active');
-        } catch (e) { $('pf-err').textContent = L('Could not reach the server. Have you run the accounts SQL?', 'Seva haipatikani. Umeendesha SQL ya akaunti?'); }
+            au.classList.remove('active');
+            if (first) tour(0);
+        } catch (e) { $('pf-err').textContent = L('Could not reach the server. Have you run the email SQL?', 'Seva haipatikani. Umeendesha SQL ya barua pepe?'); }
+    }
+    function toast(m) {
+        var t = $('adm-toast'); if (!t) return;
+        t.textContent = m; t.style.display = 'block'; setTimeout(function () { t.style.display = 'none'; }, 3500);
+    }
+
+    /* ---------- link the account to the Fantasy page ---------- */
+    async function applyTeam(team) {
+        $('fz-name').value = team.team_name; $('fz-pin').value = '0000';
+        try { await window.fzLoad(true); } catch (e) {}
+        await sync();
+    }
+    async function ensureTeam() {
+        var u = fkfFan.user(); if (!u) { await sync(); return 'none'; }
+        var r;
+        try { r = await fkfFan.rpc('fan_me', {}); } catch (e) { return 'none'; }
+        if (r.ok) { await applyTeam(r.team); return 'existing'; }
+        if (r.error !== 'noteam') return 'none';
+        var nm = (u.meta && u.meta.team_name) || '';
+        if (!nm) { showAuth('name', ''); return 'ask'; }
+        var c = await fkfFan.rpc('fan_register', { p_name: nm });
+        if (c.ok) { await applyTeam(c.team); return 'created'; }
+        showAuth('name', nameErr(c.error), { name: nm }); return 'ask';
+    }
+    async function afterSignIn() {
+        au.classList.remove('active');
+        var s = await ensureTeam();
+        if (s === 'created') showProfile(true);
     }
 
     /* ---------- guest gate, profile card, save bar ---------- */
@@ -5270,17 +5454,19 @@ document.querySelectorAll('body').forEach(function (b) {
     gate.id = 'fg-gate'; gate.className = 'fg-hero';
     main.insertBefore(gate, main.firstChild);
     function renderGate() {
-        gate.innerHTML = '<h2>' + L('Register to play FKF Fantasy', 'Jisajili kucheza FKF Fantasy') + '</h2><p>' + L('Pick your squad from the Kenyan Premier League, name a captain, play chips and climb the rankings. It is free to play.', 'Chagua kikosi chako cha Ligi Kuu ya Kenya, taja nahodha, tumia chips na upande kwenye jedwali. Ni bure kucheza.') + '</p>' +
-            '<div class="fg-btns"><button data-a="login">' + L('Log in', 'Ingia') + '</button><button class="pri" data-a="register">' + L('Register now', 'Jisajili sasa') + '</button></div><a class="fg-link" data-a="tour">' + L('How it works', 'Inavyofanya kazi') + '</a>';
+        gate.innerHTML = '<h2>' + L('Create your account to play FKF Fantasy', 'Fungua akaunti kucheza FKF Fantasy') + '</h2><p>' + L('Pick your squad from the Kenyan Premier League, name a captain, play chips and climb the rankings. It is free to play. All you need is an email address.', 'Chagua kikosi chako cha Ligi Kuu ya Kenya, taja nahodha, tumia chips na upande kwenye jedwali. Ni bure kucheza. Unahitaji barua pepe tu.') + '</p>' +
+            '<div class="fg-btns"><button data-a="login">' + L('Log in', 'Ingia') + '</button><button class="pri" data-a="register">' + L('Create account', 'Fungua akaunti') + '</button></div><a class="fg-link" data-a="tour">' + L('How it works', 'Inavyofanya kazi') + '</a>';
     }
     var prof = document.createElement('div');
     prof.className = 'fx-card'; prof.id = 'fg-prof'; prof.style.display = 'none';
     var anchor = $('fx-team'); if (anchor) anchor.insertAdjacentElement('afterend', prof); else fp.appendChild(prof);
     function renderProf() {
         var P = PROF || {}, c = teamMap[P.fav_club], m = teamMap[P.fav_manager], s = teamMap[P.fav_stadium], pl = players().filter(function (x) { return String(x.id) === String(P.fav_player); })[0];
+        var u = fkfFan.user();
         function row(l, v) { return '<div><span>' + l + '</span><b>' + (v ? esc(v) : '-') + '</b></div>'; }
-        prof.innerHTML = '<h3>' + L('My favourites', 'Ninaowapenda') + '</h3><div class="fg-pf">' + row(L('Club', 'Klabu'), c && c.name) + row(L('Manager', 'Kocha'), m && m.manager) + row(L('Player', 'Mchezaji'), pl && pn(pl)) + row(L('Stadium', 'Uwanja'), s && s.stadium_name) + '</div>' +
-            '<div class="fg-sm"><button data-a="edit-pf">' + L('Edit', 'Hariri') + '</button><button data-a="tour">' + L('How to play', 'Jinsi ya kucheza') + '</button><button data-a="logout">' + L('Log out', 'Toka') + '</button></div>';
+        prof.innerHTML = '<h3>' + L('My favourites', 'Ninaowapenda') + '</h3><div class="fg-pf">' + row(L('Club', 'Klabu'), c && c.name) + row(L('Manager', 'Kocha'), m && m.manager) + row(L('Player', 'Mchezaji'), pl && pn(pl)) + row(L('Stadium', 'Uwanja'), s && s.stadium_name) + row(L('Email', 'Barua pepe'), u && u.email) + '</div>' +
+            '<div class="fg-sm"><button data-a="edit-pf">' + L('Edit', 'Hariri') + '</button><button data-a="tour">' + L('How to play', 'Jinsi ya kucheza') + '</button><button data-a="pw">' + L('Password', 'Nenosiri') + '</button><button data-a="logout">' + L('Log out', 'Toka') + '</button></div>' +
+            '<a class="au-link" data-a="delete" style="color:#ff8a8a">' + L('Delete my account', 'Futa akaunti yangu') + '</a>';
         prof.style.display = '';
     }
     var cols = fp.querySelector('.fz-cols'), save = document.createElement('div');
@@ -5294,11 +5480,15 @@ document.querySelectorAll('body').forEach(function (b) {
             c.classList.toggle('fav', hit);
         });
     }
+    async function myTeamId() {
+        var r = await get('/fantasy_teams?select=id&team_name=eq.' + encodeURIComponent(meName()));
+        return r[0] ? String(r[0].id) : null;
+    }
     async function sync() {
         var inn = loggedIn();
         fp.classList.toggle('fx-guest', !inn);
         if (!inn) { prof.style.display = 'none'; PROF = null; FAV = ''; markFav(); return; }
-        try { var id = await myId(), r = id ? await get('/fantasy_profiles?select=*&team_id=eq.' + id) : []; PROF = r[0] || null; } catch (e) { PROF = null; }
+        try { var id = await myTeamId(), r = id ? await get('/fantasy_profiles?select=*&team_id=eq.' + id) : []; PROF = r[0] || null; } catch (e) { PROF = null; }
         FAV = PROF && teamMap[PROF.fav_club] ? teamMap[PROF.fav_club].name : '';
         renderProf(); markFav();
     }
@@ -5311,24 +5501,47 @@ document.querySelectorAll('body').forEach(function (b) {
         if ((t = e.target.closest('#ck [data-c]'))) {
             rawSet.call(localStorage, 'fkf_consent', t.dataset.c);
             if (t.dataset.c !== 'all') PREF.forEach(function (k) { try { localStorage.removeItem(k); } catch (x) {} });
-            $('ck').remove(); return;
+            fkfFan.sync(); $('ck').remove(); return;
         }
         if ((t = e.target.closest('[data-tu]'))) { tour(Number(t.dataset.tu)); return; }
-        if ((t = e.target.closest('[data-v]'))) { showAuth(t.dataset.v, '', ($('au-n') || {}).value); return; }
+        if ((t = e.target.closest('[data-v]'))) { showAuth(t.dataset.v, '', { email: val('au-e'), name: val('au-n') }); return; }
         if (!(t = e.target.closest('[data-a]'))) return;
         var a = t.dataset.a;
         if (a === 'login') showAuth('login');
         else if (a === 'register') showAuth('register');
-        else if (a === 'do-login') doLogin();
-        else if (a === 'do-reg') doReg();
+        else if (a === 'do-login') doLogin(t);
+        else if (a === 'do-reg') doReg(t);
+        else if (a === 'do-forgot') doForgot(t);
+        else if (a === 'do-reset') doReset(t);
+        else if (a === 'do-name') doName(t);
+        else if (a === 'pw') showAuth('pw');
         else if (a === 'tour') tour(0);
         else if (a === 'cookie-set') { try { localStorage.removeItem('fkf_consent'); } catch (x) {} banner(); }
         else if (a === 'save-team') { if (window.fzSave) window.fzSave(); }
-        else if (a === 'logout') { if (window.fzClear) window.fzClear(); sync(); }
+        else if (a === 'logout') { await fkfFan.signOut(); }
+        else if (a === 'delete') {
+            if (confirm(L('Delete your account, team, leagues and favourites for good? This cannot be undone.', 'Kufuta akaunti, timu, ligi na unaowapenda kabisa? Hili haliwezi kurudishwa.'))) {
+                var r = await fkfFan.deleteAccount();
+                toast(r.ok ? L('Your account was deleted.', 'Akaunti yako imefutwa.') : L('Could not delete. Please try again.', 'Imeshindwa kufuta. Jaribu tena.'));
+            }
+        }
         else if (a === 'edit-pf') showProfile(false, PROF);
         else if (a === 'pf-save') saveProfile(t);
         else if (a === 'pf-skip') { au.classList.remove('active'); tour(0); }
         else if (a === 'close-au') au.classList.remove('active');
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || !au.classList.contains('active') || e.target.tagName !== 'INPUT' || e.target.type === 'checkbox') return;
+        var b = au.querySelector('[data-a^="do-"]'); if (b) b.click();
+    });
+
+    fkfFan.on(function (ev, d) {
+        if (ev === 'signed_in') afterSignIn();
+        else if (ev === 'signed_out') {
+            if (window.fzClear) window.fzClear();
+            sync();
+            if (d && d.expired) { toast(L('Your session ended. Please log in again.', 'Kipindi chako kimeisha. Ingia tena.')); }
+        }
     });
 
     var who = $('fz-who');
@@ -5345,9 +5558,32 @@ document.querySelectorAll('body').forEach(function (b) {
 
     renderGate();
     fp.classList.add('fx-guest');
-    var saved = false; try { saved = !!localStorage.getItem('fan_team'); } catch (e) {}
-    if (saved) fp.classList.add('fx-wait');
-    setTimeout(function () { fp.classList.remove('fx-wait'); sync(); }, saved ? 1800 : 300);
+    var hadSession = false; try { hadSession = !!localStorage.getItem('fkf_fan_session') || !!localStorage.getItem('fan_team'); } catch (e) {}
+    if (hadSession) fp.classList.add('fx-wait');
+    (async function () {
+        await fkfFan.whenReady();
+        var h = fkfFan.hash();
+        if (h && h.error) showAuth('login', errMsg({ code: h.error, message: h.message }));
+        else if (h && h.type === 'recovery') showAuth('reset');
+        else if (fkfFan.signedIn()) await afterSignIn();
+        else await sync();
+        fp.classList.remove('fx-wait');
+    })();
+    setTimeout(function () { fp.classList.remove('fx-wait'); }, 4000);
+})();
+</script><style>
+#adm-pill { display: none !important; }
+html.adm-show #adm-pill, body.is-admin #adm-pill { display: block !important; }
+</style>
+<script>
+(function () {
+    var KEY = 'fkf_adm_show', h = (location.hash || '').toLowerCase(), show = false;
+    try {
+        if (h === '#admin') localStorage.setItem(KEY, '1');
+        if (h === '#noadmin') localStorage.removeItem(KEY);
+        show = localStorage.getItem(KEY) === '1';
+    } catch (e) { show = h === '#admin'; }
+    if (show) document.documentElement.classList.add('adm-show');
 })();
 </script>
 </body>
