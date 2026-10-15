@@ -5694,5 +5694,1189 @@ html.adm-show #adm-pill, body.is-admin #adm-pill { display: block !important; }
     }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 })();
 </script>
+<style>
+.mc-hit{position:absolute;inset:0;z-index:1;background:none;border:0;cursor:pointer;padding:0}
+.mc-hit::after{content:attr(data-l);position:absolute;right:16px;bottom:9px;font-size:.72rem;font-weight:800;color:#FFC72C}
+.mc-hit:hover{background:rgba(255,255,255,.025)}
+#matches-container .card .inj-card-actions,#matches-container .card .enter-result-btn{position:relative;z-index:3}
+body:not(.is-admin) .mc-admin{display:none!important}
+#mc-modal{align-items:flex-start;overflow-y:auto}
+.mc-frame{position:relative;width:min(1000px,100%);margin:auto;background:#12141C;border:1px solid #232735;border-radius:16px;box-shadow:0 24px 50px rgba(0,0,0,.6);overflow:hidden}
+.mc-head{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;padding:44px 24px 16px;background:radial-gradient(circle at 100% 0,rgba(0,166,81,.25),transparent 55%),radial-gradient(circle at 0 100%,rgba(227,27,35,.22),transparent 55%),linear-gradient(135deg,#1c2030,#0d0f16)}
+.mc-team{display:flex;flex-direction:column;align-items:center;gap:10px;font-weight:800;text-align:center;cursor:pointer}
+.mc-team:hover{color:#FFC72C}
+.mc-crest{width:76px;height:76px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:1.4rem}
+.mc-crest img{width:100%;height:100%;object-fit:contain}
+.mc-score{text-align:center}
+.mc-score b{font-size:2.4rem;font-weight:800;letter-spacing:2px}
+.mc-score span{display:block;color:#8F96A8;font-size:.78rem;margin-top:4px}
+.mc-meta{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;padding:0 24px 18px;font-size:.78rem;color:#C3C8D6;background:#0d0f16}
+.mc-tabs{display:flex;gap:2px;overflow-x:auto;padding:0 12px;border-top:1px solid #232735;border-bottom:1px solid #232735;background:#0f1118}
+.mc-tabs button{background:none;border:0;border-bottom:3px solid transparent;color:#8F96A8;font-family:inherit;font-weight:700;font-size:.85rem;padding:14px 14px;cursor:pointer;white-space:nowrap}
+.mc-tabs button.on{color:#fff;border-bottom-color:#FFC72C}
+.mc-body{padding:20px}
+.mc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.mc-box{background:#171A24;border:1px solid #232735;border-radius:12px;padding:16px;margin-bottom:16px}
+.mc-grid .mc-box{margin-bottom:0}
+.mc-box h4{margin:0 0 12px;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:#8F96A8}
+.mc-sub{color:#8F96A8;font-size:.8rem;margin-top:3px}
+.mc-none{color:#8F96A8;font-size:.88rem;padding:6px 0}
+.mc-glance{display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:center}
+.mc-li{list-style:none;padding:0;margin:0}
+.mc-li li{display:flex;gap:12px;align-items:center;padding:9px 0;border-top:1px solid rgba(255,255,255,.06);font-size:.88rem}
+.mc-li .n{width:26px;color:#8F96A8;font-weight:700}
+.mc-li b{flex:1}
+.mc-li em{font-style:normal;color:#8F96A8;font-size:.76rem}
+.mc-st{margin:16px 0}
+.mc-st .l{display:flex;justify-content:space-between;font-weight:800;font-size:.9rem;margin-bottom:6px}
+.mc-st .l span{color:#8F96A8;font-size:.75rem;text-transform:uppercase}
+.mc-bar{display:flex;height:6px;border-radius:4px;overflow:hidden;background:#232735}
+.mc-bar i{display:block;height:100%}
+.mc-bar i:first-child{background:#3B4258}.mc-bar i:last-child{background:#00A651}
+.mc-ev{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:9px 0;border-top:1px solid rgba(255,255,255,.06);font-size:.88rem}
+.mc-ev .m{color:#FFC72C;font-weight:800;margin-right:8px}
+.mc-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid rgba(255,255,255,.06);font-size:.9rem;color:#8F96A8}
+.mc-row b{color:#fff;text-align:right}
+.mc-tb tr.hi td{color:#FFC72C;font-weight:800;background:rgba(255,199,44,.07)}
+.mc-link{color:#FFC72C;font-weight:700;font-size:.8rem;cursor:pointer}
+.mc-edit{position:absolute;top:14px;left:14px;z-index:5;background:rgba(11,12,16,.7);border:1px solid rgba(255,255,255,.2);color:#fff;font-family:inherit;font-weight:700;font-size:.75rem;padding:8px 12px;border-radius:8px;cursor:pointer}
+.mc-edit:hover{border-color:#FFC72C}
+#me-modal{z-index:1100}
+#me-modal .result-modal-frame{width:min(760px,100%);max-height:92vh;overflow-y:auto}
+.me-sec{margin:0 0 22px}
+.me-sec h4{color:#FFC72C;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;margin:0 0 10px}
+.me-in{width:100%;background:#171A24;border:1px solid #232735;border-radius:8px;color:#fff;padding:9px 10px;font-size:.88rem;font-family:inherit}
+.me-in:focus{outline:none;border-color:#FFC72C}
+textarea.me-in{min-height:80px;resize:vertical}
+.me-3{display:grid;grid-template-columns:1fr 90px 90px;gap:8px;align-items:center;margin-bottom:6px;font-size:.85rem}
+.me-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.me-lu{display:grid;grid-template-columns:1fr 100px;gap:8px;align-items:center;margin-bottom:5px;font-size:.82rem}
+.me-lu-box{max-height:260px;overflow-y:auto;padding-right:4px}
+.me-ev{display:grid;grid-template-columns:64px 120px 1fr 1fr 32px;gap:6px;margin-bottom:6px}
+.me-x{background:none;border:1px solid #232735;border-radius:8px;color:#8F96A8;cursor:pointer;font-size:1.1rem}
+.me-x:hover{color:#fff;border-color:#E31B23}
+.me-add{background:rgba(255,255,255,.06);border:1px solid #232735;color:#fff;font-family:inherit;font-weight:700;font-size:.8rem;padding:9px 14px;border-radius:8px;cursor:pointer}
+.me-hint{color:#8F96A8;font-size:.78rem;margin:0 0 8px}
+@media(max-width:700px){
+    .mc-grid,.me-2{grid-template-columns:1fr}
+    .mc-head{padding:46px 12px 14px}
+    .mc-crest{width:56px;height:56px}
+    .mc-score b{font-size:1.8rem}
+    .mc-ev{gap:10px;font-size:.8rem}
+    .me-ev{grid-template-columns:56px 1fr 32px}
+    .me-ev .ev-p,.me-ev .ev-p2{grid-column:1/-1}
+}
+</style>
+<script>
+(function () {
+    if (document.getElementById('mc-modal')) return;
+    var STATS = [['Possession', 'poss'], ['Corners', 'corners'], ['Offsides', 'offsides'], ['Fouls', 'fouls'], ['Yellow cards', 'yellow'], ['Red cards', 'red']];
+    var POSN = { GK: 'Goalkeeper', DEF: 'Defender', MID: 'Midfielder', FWD: 'Forward' }, POSO = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
+    var M = null, tab = 'preview';
+
+    function $(id) { return document.getElementById(id); }
+    function L(a, b) { return document.documentElement.lang === 'sw' ? b : a; }
+    function esc(s) { return escapeHtml(s); }
+    function pn(p) { return p.known_as || p.full_name; }
+    function played(m) { return m.status === 'completed' && m.home_score !== null && m.away_score !== null; }
+    function tm(id) { return teamMap[id] || { name: 'TBC', id: id }; }
+    function txt(el) {
+        if (!el) return '';
+        var c = el.cloneNode(true); c.querySelectorAll('.crest').forEach(function (n) { n.remove(); });
+        return c.textContent.trim();
+    }
+    function playerById(id) {
+        var f = null;
+        Object.keys(playersByTeam).forEach(function (k) { (playersByTeam[k] || []).forEach(function (p) { if (p.id == id) f = p; }); });
+        return f;
+    }
+    function byPos(a, b) { return (POSO[a.position] === undefined ? 9 : POSO[a.position]) - (POSO[b.position] === undefined ? 9 : POSO[b.position]) || (Number(a.jersey_number) || 99) - (Number(b.jersey_number) || 99); }
+    async function get(path) {
+        var r = await fetch(DB_URL + path, { headers: headers });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    }
+    var minimal = Object.assign({}, headers, { 'Prefer': 'return=minimal' });
+    var merge = Object.assign({}, headers, { 'Prefer': 'resolution=merge-duplicates,return=minimal' });
+    async function send(path, method, body, h) {
+        var r = await fetch(DB_URL + path, { method: method, headers: h || minimal, body: body ? JSON.stringify(body) : undefined });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+    }
+    function tabBtn(k) {
+        var f = null;
+        document.querySelectorAll('.nav-links button').forEach(function (b) { if ((b.getAttribute('onclick') || '').indexOf("'" + k + "'") !== -1) f = b; });
+        return f;
+    }
+    function toast(m) { var t = $('adm-toast'); if (!t) return; t.textContent = m; t.style.display = 'block'; setTimeout(function () { t.style.display = 'none'; }, 3500); }
+
+    /* ---------- make every match card clickable as a whole ---------- */
+    function overlays() {
+        document.querySelectorAll('#matches-container .card').forEach(function (c) {
+            if (c.querySelector('.mc-hit')) return;
+            var b = document.createElement('button');
+            b.type = 'button'; b.className = 'mc-hit'; b.setAttribute('aria-label', 'Open match');
+            b.setAttribute('data-l', L('Match centre \u203A', 'Kituo cha mechi \u203A'));
+            c.appendChild(b);
+        });
+    }
+    var box = $('matches-container');
+    if (box) { new MutationObserver(overlays).observe(box, { childList: true }); overlays(); }
+    new MutationObserver(function () {
+        document.querySelectorAll('.mc-hit').forEach(function (b) { b.setAttribute('data-l', L('Match centre \u203A', 'Kituo cha mechi \u203A')); });
+        if (M && $('mc-modal').classList.contains('active')) render();
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest('.mc-hit'); if (!b) return;
+        var o = b.parentElement.querySelector('[onclick*="openResultModal("]');
+        var mm = o && (o.getAttribute('onclick') || '').match(/openResultModal\((\d+)\)/);
+        if (mm) openMatch(Number(mm[1]));
+    });
+
+    /* ---------- the Match Centre window ---------- */
+    var md = document.createElement('div');
+    md.id = 'mc-modal'; md.className = 'modal-screen';
+    md.innerHTML = '<div class="mc-frame" id="mc-frame"></div>';
+    document.body.appendChild(md);
+    md.addEventListener('click', function (e) { if (e.target === md) md.classList.remove('active'); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') md.classList.remove('active'); });
+
+    async function openMatch(id) {
+        var m = matchesById[id]; if (!m) return;
+        $('mc-frame').innerHTML = '<div class="mc-body mc-none">' + L('Loading match...', 'Inapakia mechi...') + '</div>';
+        md.classList.add('active'); md.scrollTop = 0;
+        var q = '&match_id=eq.' + id;
+        var r = await Promise.all([
+            get('/match_details?select=*' + q).catch(function () { return []; }),
+            get('/match_lineups?select=*' + q).catch(function () { return []; }),
+            get('/match_events?select=*' + q + '&order=minute.asc,id.asc').catch(function () { return []; }),
+            get('/goals?select=*' + q + '&order=id.asc').catch(function () { return []; })
+        ]);
+        M = { m: m, det: r[0][0] || {}, lu: r[1], ev: r[2], goals: r[3] };
+        render();
+    }
+    function crestBig(t) {
+        return '<div class="mc-crest" style="background-color:' + (isUsableImageUrl(t.crest_url) ? 'transparent' : paletteColor(t.name)) + '">' + avatarHtml(t.name, t.crest_url) + '</div>';
+    }
+    var fD = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Nairobi' });
+    var fT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Nairobi' });
+
+    function standings() {
+        return [].map.call(document.querySelectorAll('#standings-tbody tr'), function (r) {
+            var c = r.children;
+            return { rank: Number(c[0].textContent), name: txt(c[1]), p: Number(c[2].textContent), w: Number(c[3].textContent), d: Number(c[4].textContent), l: Number(c[5].textContent), pts: Number(c[9].textContent) };
+        });
+    }
+    function done() { return Object.keys(matchesById).map(function (k) { return matchesById[k]; }).filter(played); }
+    function letter(m, tid) {
+        var h = m.home_team_id == tid, f = h ? m.home_score : m.away_score, a = h ? m.away_score : m.home_score;
+        return f > a ? 'W' : (f < a ? 'L' : 'D');
+    }
+    function formOf(tid) {
+        var cur = new Date(M.m.match_datetime);
+        return done().filter(function (x) { return x.id !== M.m.id && new Date(x.match_datetime) < cur && (x.home_team_id == tid || x.away_team_id == tid); })
+            .sort(function (a, b) { return new Date(b.match_datetime) - new Date(a.match_datetime); }).slice(0, 5);
+    }
+    function dots(list, tid) { return list.length ? '<span class="mgr-form" style="justify-content:center;margin-top:8px">' + list.map(function (x) { var r = letter(x, tid); return '<i class="' + r + '">' + r + '</i>'; }).join('') + '</span>' : ''; }
+    function resLine(x, tid) {
+        var h = x.home_team_id == tid, opp = tm(h ? x.away_team_id : x.home_team_id);
+        return '<li><span class="n">' + letter(x, tid) + '</span><b>' + esc(opp.name) + '</b><em>' + x.home_score + ' - ' + x.away_score + '</em></li>';
+    }
+
+    function tabPreview() {
+        var m = M.m, h = tm(m.home_team_id), a = tm(m.away_team_id), T = standings();
+        function glance(t) {
+            var r = T.filter(function (x) { return x.name === t.name; })[0];
+            return '<div><b>' + esc(t.name) + '</b><div class="mc-sub">' + (r ? '#' + r.rank + ' \u00B7 ' + r.pts + ' pts' : '-') + '</div><div class="mc-sub">' + (r ? r.w + 'W ' + r.d + 'D ' + r.l + 'L' : '') + '</div>' + dots(formOf(t.id), t.id) + '</div>';
+        }
+        var h2h = done().filter(function (x) { return x.id !== m.id && ((x.home_team_id == h.id && x.away_team_id == a.id) || (x.home_team_id == a.id && x.away_team_id == h.id)); })
+            .sort(function (x, y) { return new Date(y.match_datetime) - new Date(x.match_datetime); });
+        function formBox(t) {
+            var l = formOf(t.id);
+            return '<div class="mc-box"><h4>' + esc(t.name) + ' ' + L('form', 'fomu') + '</h4>' + (l.length ? '<ul class="mc-li">' + l.map(function (x) { return resLine(x, t.id); }).join('') + '</ul>' : '<div class="mc-none">' + L('No recent results available.', 'Hakuna matokeo ya hivi karibuni.') + '</div>') + '</div>';
+        }
+        return '<div class="mc-grid"><div><div class="mc-box"><h4>' + L('Season at a glance', 'Msimu kwa muhtasari') + '</h4><div class="mc-glance">' + glance(h) + glance(a) + '</div></div>' +
+            '<div class="mc-box"><h4>' + L('Match preview', 'Utangulizi wa mechi') + '</h4><p style="color:#C3C8D6;line-height:1.55;font-size:.9rem">' + esc(M.det.preview || (esc(h.name) + ' vs ' + esc(a.name) + L(' in the SportPesa League. Editorial previews and players to watch will be published here.', ' kwenye SportPesa League. Utangulizi utachapishwa hapa.'))) + '</p></div></div>' +
+            '<div class="mc-box"><h4>' + L('Head to head', 'Mikutano ya awali') + '</h4>' + (h2h.length ? '<ul class="mc-li">' + h2h.map(function (x) { return '<li><b>' + esc(tm(x.home_team_id).name) + '</b><em>' + x.home_score + ' - ' + x.away_score + '</em><b style="text-align:right">' + esc(tm(x.away_team_id).name) + '</b></li>'; }).join('') + '</ul>' : '<div class="mc-none">' + L('No previous meetings recorded.', 'Hakuna mikutano ya awali.') + '</div>') + '</div></div>' +
+            '<div class="mc-grid" style="margin-top:16px">' + formBox(h) + formBox(a) + '</div>';
+    }
+    function tabLineup() {
+        var m = M.m;
+        function side(t) {
+            var rows = M.lu.filter(function (r) { return String(r.team_id) === String(t.id); });
+            function list(role) {
+                var ps = rows.filter(function (r) { return r.role === role; }).map(function (r) { return playerById(r.player_id); }).filter(Boolean).sort(byPos);
+                return ps.length ? '<ul class="mc-li">' + ps.map(function (p) { return '<li><span class="n">' + esc(p.jersey_number === null || p.jersey_number === undefined ? '' : p.jersey_number) + '</span><b>' + esc(pn(p)) + '</b><em>' + (POSN[p.position] || '') + '</em></li>'; }).join('') + '</ul>' : '<div class="mc-none">-</div>';
+            }
+            return '<div class="mc-box"><h4 style="color:#fff;font-size:.95rem;text-transform:none">' + esc(t.name) + '</h4><h4>' + L('Starting XI', 'Kikosi cha kwanza') + '</h4>' + list('start') + '<h4 style="margin-top:16px">' + L('Substitutes', 'Akiba') + '</h4>' + list('sub') + '</div>';
+        }
+        if (!M.lu.length) return '<div class="mc-box"><div class="mc-none">' + L('Line-ups have not been published yet.', 'Vikosi bado havijachapishwa.') + '</div></div>';
+        return '<div class="mc-grid">' + side(tm(m.home_team_id)) + side(tm(m.away_team_id)) + '</div>';
+    }
+    function tabStats() {
+        var d = M.det, any = false;
+        var rows = STATS.map(function (s) {
+            var hv = d[s[1] + '_home'], av = d[s[1] + '_away'];
+            if (s[1] === 'poss') { if (hv != null && av == null) av = 100 - hv; if (av != null && hv == null) hv = 100 - av; }
+            if (hv == null && av == null) return '';
+            any = true; hv = hv || 0; av = av || 0;
+            var sum = hv + av, pc = sum ? Math.round(100 * hv / sum) : 50, u = s[1] === 'poss' ? '%' : '';
+            return '<div class="mc-st"><div class="l"><b>' + hv + u + '</b><span>' + L(s[0], { Possession: 'Umiliki', Corners: 'Kona', Offsides: 'Ofsaidi', Fouls: 'Madhambi', 'Yellow cards': 'Kadi za njano', 'Red cards': 'Kadi nyekundu' }[s[0]]) + '</span><b>' + av + u + '</b></div><div class="mc-bar"><i style="width:' + pc + '%"></i><i style="width:' + (100 - pc) + '%"></i></div></div>';
+        }).join('');
+        return '<div class="mc-box"><div class="l" style="display:flex;justify-content:space-between;font-weight:800"><span>' + esc(tm(M.m.home_team_id).name) + '</span><span>' + esc(tm(M.m.away_team_id).name) + '</span></div>' + (any ? rows : '<div class="mc-none">' + L('Match stats have not been recorded yet.', 'Takwimu za mechi bado hazijarekodiwa.') + '</div>') + '</div>';
+    }
+    function tabTimeline() {
+        var m = M.m, items = [];
+        M.goals.forEach(function (g) { items.push({ min: g.minute, team: g.team_id, k: 'goal', p: g.player_id, p2: g.assist_player_id }); });
+        M.ev.forEach(function (e) { items.push({ min: e.minute, team: e.team_id, k: e.kind, p: e.player_id, p2: e.player2_id }); });
+        items.sort(function (a, b) { return (a.min == null ? 999 : a.min) - (b.min == null ? 999 : b.min); });
+        function cell(it) {
+            var p = playerById(it.p), p2 = playerById(it.p2), n = p ? esc(pn(p)) : '-';
+            var ico = { goal: '\u26BD', yellow: '\uD83D\uDFE8', red: '\uD83D\uDFE5', sub: '\uD83D\uDD04' }[it.k];
+            var more = it.k === 'goal' && p2 ? ' <span class="mc-sub">(' + L('assist', 'pasi') + ' ' + esc(pn(p2)) + ')</span>' : (it.k === 'sub' && p2 ? ' <span class="mc-sub">(' + L('off', 'nje') + ': ' + esc(pn(p2)) + ')</span>' : '');
+            return '<span class="m">' + (it.min == null ? '-' : it.min + "'") + '</span>' + ico + ' <b>' + n + '</b>' + more;
+        }
+        if (!items.length) return '<div class="mc-box"><div class="mc-none">' + L('No match events recorded yet.', 'Hakuna matukio ya mechi yaliyorekodiwa.') + '</div></div>';
+        return '<div class="mc-box"><div class="mc-ev" style="border:0;font-weight:800"><span>' + esc(tm(m.home_team_id).name) + '</span><span>' + esc(tm(m.away_team_id).name) + '</span></div>' +
+            items.map(function (it) { var home = String(it.team) === String(m.home_team_id); return '<div class="mc-ev"><span>' + (home ? cell(it) : '') + '</span><span>' + (home ? '' : cell(it)) + '</span></div>'; }).join('') + '</div>';
+    }
+    function tabTable() {
+        var m = M.m, h = tm(m.home_team_id).name, a = tm(m.away_team_id).name, T = standings();
+        return '<div class="mc-box"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><h4 style="margin:0">' + L('League table', 'Msimamo wa ligi') + '</h4><a class="mc-link" data-go="table">' + L('Full table', 'Msimamo kamili') + ' \u203A</a></div>' +
+            '<table class="standings-table mc-tb"><thead><tr><th>#</th><th class="left">' + L('Club', 'Klabu') + '</th><th>P</th><th>PTS</th></tr></thead><tbody>' +
+            T.map(function (r) { return '<tr' + (r.name === h || r.name === a ? ' class="hi"' : '') + '><td>' + r.rank + '</td><td class="left" style="text-align:left">' + esc(r.name) + '</td><td>' + r.p + '</td><td>' + r.pts + '</td></tr>'; }).join('') + '</tbody></table></div>';
+    }
+    function tabInfo() {
+        var m = M.m, d = M.det, d0 = new Date(m.match_datetime);
+        function row(l, v) { return v ? '<div class="mc-row"><span>' + l + '</span><b>' + esc(v) + '</b></div>' : ''; }
+        var cs = [];
+        [[d.home_cs_player, m.home_team_id], [d.away_cs_player, m.away_team_id]].forEach(function (x) { var p = playerById(x[0]); if (p) cs.push(pn(p) + ' (' + tm(x[1]).name + ')'); });
+        return '<div class="mc-grid"><div class="mc-box"><h4>' + L('Match details', 'Maelezo ya mechi') + '</h4>' +
+            row(L('Date', 'Tarehe'), isNaN(d0) ? '' : fD.format(d0)) + row(L('Kick-off', 'Kuanza'), isNaN(d0) ? '' : fT.format(d0)) + row(L('Venue', 'Uwanja'), m.stadium) + row(L('Referee', 'Mwamuzi'), d.referee) +
+            row(L('Competition', 'Mashindano'), 'SportPesa League') + row(L('Matchweek', 'Wiki ya mechi'), m.gameweek ? 'Matchweek ' + m.gameweek : '') + row(L('Clean sheet', 'Hakufungwa'), cs.join(', ')) + '</div>' +
+            '<div class="mc-box"><h4>' + L('Broadcast partners', 'Washirika wa matangazo') + '</h4>' + (d.broadcast ? '<div class="mc-row" style="border:0"><span>' + L('Watch on', 'Tazama kwenye') + '</span><b>' + esc(d.broadcast) + '</b></div>' : '<div class="mc-none">' + L('Not announced yet.', 'Bado haijatangazwa.') + '</div>') + '</div></div>';
+    }
+    function render() {
+        var m = M.m, h = tm(m.home_team_id), a = tm(m.away_team_id), pl = played(m), d0 = new Date(m.match_datetime);
+        var TABS = [['preview', 'Preview', 'Utangulizi'], ['lineup', 'Line-up', 'Vikosi'], ['stats', 'Stats', 'Takwimu'], ['timeline', 'Timeline', 'Matukio'], ['table', 'Table', 'Msimamo'], ['info', 'Match info', 'Maelezo']];
+        var body = { preview: tabPreview, lineup: tabLineup, stats: tabStats, timeline: tabTimeline, table: tabTable, info: tabInfo }[tab]();
+        $('mc-frame').innerHTML =
+            '<button class="close-btn" data-x="mc-modal">&times;</button><button class="mc-edit mc-admin" data-a="edit">' + L('Edit match details', 'Hariri maelezo') + '</button>' +
+            '<div class="mc-head"><div class="mc-team" data-club="' + h.id + '">' + crestBig(h) + '<span>' + esc(h.name) + '</span></div>' +
+            '<div class="mc-score"><b>' + (pl ? m.home_score + ' - ' + m.away_score : 'vs') + '</b><span>' + (isNaN(d0) ? '' : fD.format(d0)) + (pl || isNaN(d0) ? '' : ' \u00B7 ' + fT.format(d0)) + '</span></div>' +
+            '<div class="mc-team" data-club="' + a.id + '">' + crestBig(a) + '<span>' + esc(a.name) + '</span></div></div>' +
+            '<div class="mc-meta"><span>SportPesa League</span>' + (m.gameweek ? '<span>Matchweek ' + esc(m.gameweek) + '</span>' : '') + (m.stadium ? '<span>' + esc(m.stadium) + '</span>' : '') + '</div>' +
+            '<div class="mc-tabs">' + TABS.map(function (t) { return '<button data-tab="' + t[0] + '"' + (t[0] === tab ? ' class="on"' : '') + '>' + L(t[1], t[2]) + '</button>'; }).join('') + '</div><div class="mc-body">' + body + '</div>';
+    }
+    function goClub(id) {
+        var t = teamMap[id]; if (!t) return;
+        md.classList.remove('active');
+        window.switchTab('clubs', { currentTarget: tabBtn('clubs') });
+        var mn = document.querySelector('main'); if (mn) mn.scrollTop = 0;
+        setTimeout(function () {
+            var cs = document.querySelectorAll('#clubs-container .card');
+            for (var i = 0; i < cs.length; i++) { var ti = cs[i].querySelector('.club-title'); if (ti && txt(ti) === t.name) { cs[i].scrollIntoView({ behavior: 'smooth', block: 'center' }); cs[i].classList.add('fkf-flash'); break; } }
+        }, 80);
+    }
+    $('mc-frame').addEventListener('click', function (e) {
+        var t;
+        if ((t = e.target.closest('[data-x]'))) { $(t.dataset.x).classList.remove('active'); return; }
+        if ((t = e.target.closest('[data-tab]'))) { tab = t.dataset.tab; render(); return; }
+        if ((t = e.target.closest('[data-club]'))) { goClub(t.dataset.club); return; }
+        if ((t = e.target.closest('[data-go]'))) { md.classList.remove('active'); window.switchTab(t.dataset.go, { currentTarget: tabBtn(t.dataset.go) }); return; }
+        if (e.target.closest('[data-a="edit"]')) openEditor();
+    });
+
+    /* ---------- admin: edit the after-match details ---------- */
+    var ed = document.createElement('div');
+    ed.id = 'me-modal'; ed.className = 'modal-screen';
+    ed.innerHTML = '<div class="result-modal-frame"><button class="close-btn" id="me-x">&times;</button><h3>Match details</h3><p class="result-modal-sub" id="me-sub"></p><div id="me-body"></div><div class="result-error" id="me-err"></div><div class="result-actions"><button class="result-cancel-btn" id="me-cancel">Cancel</button><button class="result-save-btn" id="me-save">Save</button></div></div>';
+    document.body.appendChild(ed);
+    function closeEd() { ed.classList.remove('active'); }
+    $('me-x').onclick = closeEd; $('me-cancel').onclick = closeEd;
+
+    function openEditor() {
+        var m = M.m, d = M.det, h = tm(m.home_team_id), a = tm(m.away_team_id);
+        function num(id, v) { return '<input class="me-in" type="number" min="0" id="' + id + '" value="' + (v == null ? '' : v) + '">'; }
+        function plOpts(sel) {
+            return [h, a].map(function (t) { return '<optgroup label="' + esc(t.name) + '">' + (playersByTeam[t.id] || []).slice().sort(byPos).map(function (p) { return '<option value="' + p.id + '"' + (String(p.id) === String(sel) ? ' selected' : '') + '>' + esc(pn(p)) + '</option>'; }).join('') + '</optgroup>'; }).join('');
+        }
+        function evRow(e) {
+            e = e || {};
+            function ko(v, l) { return '<option value="' + v + '"' + (e.kind === v ? ' selected' : '') + '>' + l + '</option>'; }
+            return '<div class="me-ev"><input class="me-in ev-m" type="number" min="0" max="130" placeholder="min" value="' + (e.minute == null ? '' : e.minute) + '"><select class="me-in ev-k">' + ko('yellow', 'Yellow card') + ko('red', 'Red card') + ko('sub', 'Substitution') + '</select><select class="me-in ev-p">' + plOpts(e.player_id) + '</select><select class="me-in ev-p2"><option value="">-</option>' + plOpts(e.player2_id) + '</select><button type="button" class="me-x">&times;</button></div>';
+        }
+        function squad(t) {
+            var cur = {}; M.lu.forEach(function (r) { cur[r.player_id] = r.role; });
+            return '<div><div style="font-weight:800;margin-bottom:8px">' + esc(t.name) + '</div><div class="me-lu-box">' + (playersByTeam[t.id] || []).slice().sort(byPos).map(function (p) {
+                var v = cur[p.id] || '';
+                return '<div class="me-lu"><span>' + esc(p.jersey_number == null ? '' : p.jersey_number + ' ') + esc(pn(p)) + ' <em style="color:#8F96A8;font-style:normal">' + esc(p.position || '') + '</em></span><select class="me-in me-sel" data-p="' + p.id + '" data-t="' + t.id + '"><option value="">-</option><option value="start"' + (v === 'start' ? ' selected' : '') + '>Starter</option><option value="sub"' + (v === 'sub' ? ' selected' : '') + '>Sub</option></select></div>';
+            }).join('') + '</div></div>';
+        }
+        $('me-sub').textContent = h.name + ' vs ' + a.name;
+        $('me-body').innerHTML =
+            '<div class="me-sec"><h4>Basics</h4><div class="inj-field"><label for="me-ref">Referee</label><input class="me-in" id="me-ref" value="' + esc(d.referee || '') + '"></div><div class="inj-field"><label for="me-bc">Broadcast partners</label><input class="me-in" id="me-bc" value="' + esc(d.broadcast || '') + '" placeholder="e.g. SuperSport, YouTube"></div><div class="inj-field"><label for="me-pv">Match preview or report</label><textarea class="me-in" id="me-pv">' + esc(d.preview || '') + '</textarea></div></div>' +
+            '<div class="me-sec"><h4>Stats (leave blank if unknown)</h4><div class="me-3"><span></span><b>' + esc(h.name) + '</b><b>' + esc(a.name) + '</b></div>' + STATS.map(function (s) { return '<div class="me-3"><span>' + s[0] + '</span>' + num('me-' + s[1] + '-h', d[s[1] + '_home']) + num('me-' + s[1] + '-a', d[s[1] + '_away']) + '</div>'; }).join('') + '</div>' +
+            '<div class="me-sec"><h4>Line-ups (11 starters per team)</h4><div class="me-2">' + squad(h) + squad(a) + '</div></div>' +
+            '<div class="me-sec"><h4>Cards and substitutions</h4><p class="me-hint">For a substitution, pick the player coming on first and the player going off second.</p><div id="me-evs">' + M.ev.map(evRow).join('') + '</div><button type="button" class="me-add" id="me-add">+ Add event</button></div>' +
+            '<div class="me-sec"><h4>Goal minutes</h4>' + (M.goals.length ? M.goals.map(function (g) { var p = playerById(g.player_id); return '<div class="me-3"><span>' + esc(p ? pn(p) : '-') + ' (' + esc(tm(g.team_id).name) + ')</span><input class="me-in gm" type="number" min="0" max="130" data-id="' + g.id + '" data-old="' + (g.minute == null ? '' : g.minute) + '" value="' + (g.minute == null ? '' : g.minute) + '"><span></span></div>'; }).join('') : '<div class="mc-none">Save the goal scorers first (Edit goals), then add the minutes here.</div>') + '</div>';
+        $('me-err').textContent = '';
+        $('me-add').onclick = function () { $('me-evs').insertAdjacentHTML('beforeend', evRow()); };
+        ed.classList.add('active');
+    }
+    ed.addEventListener('click', function (e) { var x = e.target.closest('.me-x'); if (x && x.id !== 'me-x') x.parentElement.remove(); });
+    $('me-save').onclick = async function () {
+        var btn = this, m = M.m;
+        function n(id) { var v = $(id).value.trim(); return v === '' ? null : Number(v); }
+        btn.disabled = true; btn.textContent = 'Saving...'; $('me-err').textContent = '';
+        try {
+            var det = { match_id: m.id, referee: $('me-ref').value.trim() || null, broadcast: $('me-bc').value.trim() || null, preview: $('me-pv').value.trim() || null, updated_at: new Date().toISOString() };
+            STATS.forEach(function (s) { det[s[1] + '_home'] = n('me-' + s[1] + '-h'); det[s[1] + '_away'] = n('me-' + s[1] + '-a'); });
+            var lu = [], starts = {};
+            document.querySelectorAll('#me-body .me-sel').forEach(function (s) {
+                if (!s.value) return;
+                lu.push({ match_id: m.id, team_id: Number(s.dataset.t), player_id: Number(s.dataset.p), role: s.value });
+                if (s.value === 'start') starts[s.dataset.t] = (starts[s.dataset.t] || 0) + 1;
+            });
+            for (var k in starts) if (starts[k] > 11) throw new Error('A team can have at most 11 starters.');
+            var ev = [];
+            document.querySelectorAll('#me-evs .me-ev').forEach(function (r) {
+                var min = r.querySelector('.ev-m').value, pid = r.querySelector('.ev-p').value, p2 = r.querySelector('.ev-p2').value, p = playerById(pid);
+                if (min === '' || !p) return;
+                ev.push({ match_id: m.id, team_id: p.team_id, minute: Number(min), kind: r.querySelector('.ev-k').value, player_id: Number(pid), player2_id: p2 ? Number(p2) : null });
+            });
+            await send('/match_details?on_conflict=match_id', 'POST', det, merge);
+            await send('/match_lineups?match_id=eq.' + m.id, 'DELETE');
+            if (lu.length) await send('/match_lineups', 'POST', lu);
+            await send('/match_events?match_id=eq.' + m.id, 'DELETE');
+            if (ev.length) await send('/match_events', 'POST', ev);
+            var gms = [].slice.call(document.querySelectorAll('#me-body .gm')).filter(function (i) { return i.value !== i.dataset.old; });
+            for (var i = 0; i < gms.length; i++) await send('/goals?id=eq.' + gms[i].dataset.id, 'PATCH', { minute: gms[i].value === '' ? null : Number(gms[i].value) });
+            closeEd(); await openMatch(m.id); toast('Match details saved.');
+        } catch (err) {
+            $('me-err').textContent = 'Could not save: ' + err.message + (/401|403/.test(err.message) ? ' (admin login needed)' : (/40[04]/.test(err.message) ? ' (did you run the match centre SQL?)' : ''));
+        }
+        btn.disabled = false; btn.textContent = 'Save';
+    };
+
+    /* ---------- clean sheet keeper, picked in the result window ---------- */
+    var rm = $('result-modal'), re = $('result-error');
+    if (rm && re) {
+        var cs = document.createElement('div');
+        cs.id = 'rs-cs';
+        cs.innerHTML = '<div class="inj-field" id="rs-hw" style="display:none"><label id="rs-hl"></label><select id="rs-h"></select></div><div class="inj-field" id="rs-aw" style="display:none"><label id="rs-al"></label><select id="rs-a"></select></div>';
+        re.insertAdjacentElement('beforebegin', cs);
+        var csToggle = function () {
+            var hs = $('result-home-score').value, as = $('result-away-score').value;
+            $('rs-hw').style.display = as !== '' && Number(as) === 0 ? '' : 'none';
+            $('rs-aw').style.display = hs !== '' && Number(hs) === 0 ? '' : 'none';
+        };
+        ['result-home-score', 'result-away-score'].forEach(function (id) { $(id).addEventListener('input', csToggle); });
+        var prevOpen = window.openResultModal;
+        window.openResultModal = async function (id) {
+            prevOpen(id);
+            var m = matchesById[id]; if (!m) return;
+            function gks(team) {
+                var l = (playersByTeam[team] || []).filter(function (p) { return p.position === 'GK'; });
+                if (!l.length) l = playersByTeam[team] || [];
+                return l.slice().sort(function (a, b) { return pn(a).localeCompare(pn(b)); });
+            }
+            var hg = gks(m.home_team_id), ag = gks(m.away_team_id);
+            function opts(l) { return '<option value="">-</option>' + l.map(function (p) { return '<option value="' + p.id + '">' + esc(pn(p)) + '</option>'; }).join(''); }
+            $('rs-h').innerHTML = opts(hg); $('rs-a').innerHTML = opts(ag);
+            $('rs-hl').textContent = teamName(m.home_team_id) + ' - clean sheet goalkeeper';
+            $('rs-al').textContent = teamName(m.away_team_id) + ' - clean sheet goalkeeper';
+            if (hg.length === 1) $('rs-h').value = hg[0].id;
+            if (ag.length === 1) $('rs-a').value = ag[0].id;
+            csToggle();
+            try {
+                var d = (await get('/match_details?select=home_cs_player,away_cs_player&match_id=eq.' + id))[0];
+                if (d) { if (d.home_cs_player) $('rs-h').value = d.home_cs_player; if (d.away_cs_player) $('rs-a').value = d.away_cs_player; }
+            } catch (e) {}
+        };
+        var prevSubmit = window.submitResult;
+        window.submitResult = async function () {
+            var id = activeResultMatchId, hs = $('result-home-score').value, as = $('result-away-score').value, hk = $('rs-h').value, ak = $('rs-a').value;
+            await prevSubmit();
+            if (id === null || $('result-modal').classList.contains('active')) return;
+            try {
+                await send('/match_details?on_conflict=match_id', 'POST', { match_id: id, home_cs_player: as !== '' && Number(as) === 0 && hk ? Number(hk) : null, away_cs_player: hs !== '' && Number(hs) === 0 && ak ? Number(ak) : null }, merge);
+                if (window.loadStats) loadStats();
+            } catch (e) { toast('Result saved, but the keeper was not (run the match centre SQL).'); }
+        };
+    }
+
+    /* ---------- Statistics: clean sheets by goalkeeper ---------- */
+    async function gkCard() {
+        var sc = $('stats-container'); if (!sc) return;
+        var rows = await get('/match_details?select=home_cs_player,away_cs_player'), cnt = {};
+        rows.forEach(function (r) { [r.home_cs_player, r.away_cs_player].forEach(function (id) { if (id) cnt[id] = (cnt[id] || 0) + 1; }); });
+        var list = Object.keys(cnt).map(function (id) { var p = playerById(id); return p ? { p: p, n: cnt[id] } : null; }).filter(Boolean)
+            .sort(function (a, b) { return b.n - a.n || pn(a.p).localeCompare(pn(b.p)); }).slice(0, 10);
+        var old = $('gk-cs-card'); if (old) old.remove();
+        var rank = 0, prev = null;
+        var body = list.length ? list.map(function (x, i) {
+            if (x.n !== prev) { rank = i + 1; prev = x.n; }
+            var nm = pn(x.p);
+            return '<div class="stat-row"><span class="stat-rank">' + rank + '</span><div class="player-avatar-frame" style="background-color:' + paletteColor(nm) + '">' + avatarHtml(nm, x.p.image_url) + '</div><div class="stat-who"><div class="stat-name">' + esc(nm) + '</div><div class="club-name">' + esc((teamMap[x.p.team_id] || {}).name || '') + '</div></div><span class="stat-val">' + x.n + '</span></div>';
+        }).join('') : '<div class="empty-state">No goalkeeper clean sheets recorded yet.</div>';
+        sc.insertAdjacentHTML('beforeend', '<div class="card static" id="gk-cs-card"><div class="stat-title">' + L('Clean Sheets (Goalkeepers)', 'Hakufungwa (Makipa)') + '</div>' + body + '</div>');
+    }
+    var prevStats = window.loadStats;
+    if (typeof prevStats === 'function') window.loadStats = async function () {
+        var r = await prevStats.apply(this, arguments);
+        try { await gkCard(); } catch (e) {}
+        return r;
+    };
+})();
+</script><style>
+.pl-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.pl-ta{width:100%;min-height:150px;background:#171A24;border:1px solid #232735;border-radius:8px;color:#fff;padding:10px;font-size:.82rem;font-family:inherit;resize:vertical}
+.pl-ta:focus{outline:none;border-color:#FFC72C}
+.pl-b{background:rgba(255,255,255,.07);border:1px solid #232735;color:#fff;font-family:inherit;font-weight:700;font-size:.8rem;padding:9px 14px;border-radius:8px;cursor:pointer;margin-top:8px}
+.pl-b:hover{border-color:#FFC72C}
+.pl-b.pri{background:#E31B23;border-color:#E31B23}
+.pl-r{display:grid;grid-template-columns:34px 1fr 84px 1.1fr 72px;gap:6px;align-items:center;padding:6px 0;border-top:1px solid rgba(255,255,255,.06);font-size:.8rem}
+.pl-r select{background:#171A24;border:1px solid #232735;border-radius:6px;color:#fff;padding:6px;font-size:.78rem;font-family:inherit;width:100%}
+.pl-r.new .pl-m{border-color:#FFC72C}
+.pl-note{color:#8F96A8;font-size:.78rem;margin:0 0 10px;line-height:1.45}
+.pl-ok{color:#10B981;font-size:.82rem;margin-top:8px}
+.pl-bad{color:#FF6B70;font-size:.82rem;margin-top:8px}
+@media(max-width:700px){.pl-cols{grid-template-columns:1fr}.pl-r{grid-template-columns:30px 1fr 1fr}.pl-r .pl-m,.pl-r .pl-pos{grid-column:1/-1}}
+</style>
+<script>
+(function () {
+    if (window.__fkfLineups) return; window.__fkfLineups = true;
+    var POSMAP = {
+        'goalkeeper': 'GK', 'keeper': 'GK',
+        'right back': 'DEF', 'left back': 'DEF', 'centre back': 'DEF', 'center back': 'DEF', 'defender': 'DEF', 'right wing back': 'DEF', 'left wing back': 'DEF', 'wing back': 'DEF',
+        'defensive midfielder': 'MID', 'centre mid': 'MID', 'center mid': 'MID', 'central midfielder': 'MID', 'midfielder': 'MID', 'centre attacking midfielder': 'MID', 'attacking midfielder': 'MID', 'right midfielder': 'MID', 'left midfielder': 'MID',
+        'right winger': 'FWD', 'left winger': 'FWD', 'winger': 'FWD', 'striker': 'FWD', 'forward': 'FWD', 'centre forward': 'FWD', 'second striker': 'FWD'
+    };
+    var KEYS = Object.keys(POSMAP).sort(function (a, b) { return b.length - a.length; });
+    var REV = {};
+
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { return escapeHtml(s); }
+    function pn(p) { return p.known_as || p.full_name; }
+    function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+    function toks(s) { return norm(s).split(' ').filter(Boolean); }
+    function allPlayers() { var o = []; Object.keys(playersByTeam).forEach(function (k) { o = o.concat(playersByTeam[k]); }); return o; }
+    function playerById(id) { return allPlayers().filter(function (p) { return p.id == id; })[0] || null; }
+    function teamByName(n) { return Object.keys(teamMap).map(function (k) { return teamMap[k]; }).filter(function (t) { return t.name === n; })[0] || null; }
+    async function get(path) {
+        var r = await fetch(DB_URL + path, { headers: headers });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    }
+    function toast(m) { var t = $('adm-toast'); if (!t) return; t.textContent = m; t.style.display = 'block'; setTimeout(function () { t.style.display = 'none'; }, 4000); }
+
+    /* ---------- create players that are missing from a club roster ---------- */
+    function shortName(full) {
+        var t = full.trim().split(/\s+/);
+        return t.length < 2 ? full.trim() : t[0].charAt(0).toUpperCase() + '. ' + t[t.length - 1];
+    }
+    async function createPlayers(list) {
+        if (!list.length) return [];
+        var body = list.map(function (x) {
+            return { full_name: x.full_name, known_as: shortName(x.full_name), team_id: x.team_id, position: x.position, jersey_number: x.num === '' || x.num == null ? null : Number(x.num), is_substitute: !!x.sub };
+        });
+        var H = Object.assign({}, headers, { 'Prefer': 'return=representation' });
+        var r = await fetch(DB_URL + '/players', { method: 'POST', headers: H, body: JSON.stringify(body) });
+        if (!r.ok) {
+            var mx = await get('/players?select=id&order=id.desc&limit=1');
+            var next = (mx[0] ? Number(mx[0].id) : 0) + 1;
+            body.forEach(function (b, i) { b.id = next + i; });
+            r = await fetch(DB_URL + '/players', { method: 'POST', headers: H, body: JSON.stringify(body) });
+            if (!r.ok) throw new Error('HTTP ' + r.status + (r.status === 401 || r.status === 403 ? ' (admin login needed)' : ''));
+        }
+        var rows = await r.json();
+        rows.forEach(function (p) { (playersByTeam[p.team_id] = playersByTeam[p.team_id] || []).push(p); });
+        return rows;
+    }
+    async function reloadRoster() {
+        try {
+            var list = await get('/players?select=*');
+            Object.keys(playersByTeam).forEach(function (k) { delete playersByTeam[k]; });
+            list.forEach(function (p) { (playersByTeam[p.team_id] = playersByTeam[p.team_id] || []).push(p); });
+            if (window.renderPlayers) renderPlayers(list);
+            if (window.renderClubs) renderClubs(Object.keys(teamMap).map(function (k) { return teamMap[k]; }));
+        } catch (e) { console.error('Roster reload failed:', e); }
+    }
+
+    /* ---------- read an SPL line-up pasted as text ---------- */
+    function parse(text, teamName) {
+        var role = 'start', out = [], cur = null, skip = norm(teamName);
+        function push() { if (cur && cur.name) { cur.role = role; out.push(cur); } cur = null; }
+        String(text).split(/\r?\n/).forEach(function (line) {
+            line.split(/\t+| {3,}/).forEach(function (piece) {
+                piece = piece.trim(); if (!piece) return;
+                var low = piece.toLowerCase();
+                if (/^starting/.test(low)) { push(); role = 'start'; return; }
+                if (/^(substitut|bench)/.test(low)) { push(); role = 'sub'; return; }
+                if (norm(piece) === skip || /^(line ?up|preview|stats)$/.test(low)) return;
+                if (/^\d{1,3}$/.test(piece)) { push(); cur = { num: piece, name: '', pos: '' }; return; }
+                var m = piece.match(/^(\d{1,3})[\s.\-)]+(.+)$/);
+                if (m) { push(); cur = { num: m[1], name: '', pos: '' }; piece = m[2]; low = piece.toLowerCase(); }
+                if (POSMAP[low]) { if (cur) cur.pos = POSMAP[low]; return; }
+                var pos = '';
+                for (var i = 0; i < KEYS.length; i++) {
+                    var k = KEYS[i];
+                    if (low.length > k.length + 1 && low.slice(-k.length) === k && low.charAt(low.length - k.length - 1) === ' ') { pos = POSMAP[k]; piece = piece.slice(0, piece.length - k.length).trim(); break; }
+                }
+                if (cur && cur.name) push();
+                if (!cur) cur = { num: '', name: '', pos: '' };
+                cur.name = piece; if (pos) cur.pos = pos;
+            });
+        });
+        push(); return out;
+    }
+    function guess(teamId, name, num) {
+        var sq = playersByTeam[teamId] || [], n = norm(name), t = toks(name), best = null, last = t[t.length - 1];
+        sq.forEach(function (p) { if (!best && (norm(p.full_name) === n || norm(p.known_as) === n)) best = p; });
+        if (best) return best;
+        sq.forEach(function (p) { var pt = toks(p.full_name); if (!best && t.length >= 2 && (t.every(function (x) { return pt.indexOf(x) > -1; }) || pt.every(function (x) { return t.indexOf(x) > -1; }))) best = p; });
+        if (best) return best;
+        sq.forEach(function (p) { var pt = toks(p.known_as || p.full_name); if (!best && t.length >= 2 && pt.length >= 2 && pt[pt.length - 1] === last && pt[0].charAt(0) === t[0].charAt(0)) best = p; });
+        if (best) return best;
+        sq.forEach(function (p) { var pt = toks(p.full_name); if (!best && num !== '' && String(p.jersey_number) === String(num) && last && pt.some(function (x) { return x.slice(0, 4) === last.slice(0, 4); })) best = p; });
+        return best;
+    }
+
+    /* ---------- the paste box inside the Match details window ---------- */
+    function teamsOfEditor() {
+        var parts = ($('me-sub') ? $('me-sub').textContent : '').split(' vs ');
+        return parts.map(teamByName).filter(Boolean);
+    }
+    function inject() {
+        var body = $('me-body'); if (!body || $('pl-box')) return;
+        var T = teamsOfEditor(); if (T.length < 2) return;
+        var sec = document.createElement('div');
+        sec.className = 'me-sec'; sec.id = 'pl-box';
+        sec.innerHTML = '<h4>Paste line-up from SPL</h4><p class="pl-note">Copy one team\'s list from the SPL match page (with the STARTING XI and SUBSTITUTES headings), paste it, then press Check. Players missing from your roster are added to the club.</p><div class="pl-cols">' +
+            T.map(function (t) { return '<div data-t="' + t.id + '"><div style="font-weight:800;margin-bottom:6px">' + esc(t.name) + '</div><textarea class="pl-ta" placeholder="STARTING XI&#10;22 Elvis Ochieng Osok Right back&#10;..."></textarea><button type="button" class="pl-b" data-pa="check">Check line-up</button><div class="pl-rev"></div></div>'; }).join('') + '</div>';
+        var target = [].slice.call(body.querySelectorAll('.me-sec')).filter(function (s) { var h = s.querySelector('h4'); return h && /^Line-ups/.test(h.textContent); })[0];
+        if (target) body.insertBefore(sec, target); else body.appendChild(sec);
+    }
+    var mb = $('me-body');
+    if (mb) new MutationObserver(inject).observe(mb, { childList: true });
+
+    function byName(a, b) { return pn(a).localeCompare(pn(b)); }
+    function check(host) {
+        var teamId = host.dataset.t, t = teamMap[teamId], text = host.querySelector('.pl-ta').value;
+        var lines = parse(text, t.name), rev = host.querySelector('.pl-rev');
+        REV[teamId] = lines;
+        if (!lines.length) { rev.innerHTML = '<div class="pl-bad">Nothing found. Paste the full list, with numbers and names.</div>'; return; }
+        var sq = (playersByTeam[teamId] || []).slice().sort(byName);
+        rev.innerHTML = '<p class="pl-note" style="margin-top:10px">Check each row. Rows with a gold border are not in your roster yet and will be added. If a name is spelled differently in your roster, pick that player instead.</p>' +
+            lines.map(function (l, i) {
+                var g = guess(teamId, l.name, l.num);
+                return '<div class="pl-r' + (g ? '' : ' new') + '" data-i="' + i + '"><b>' + esc(l.num) + '</b><span>' + esc(l.name) + '</span>' +
+                    '<select class="pl-role"><option value="start"' + (l.role === 'start' ? ' selected' : '') + '>Starter</option><option value="sub"' + (l.role === 'sub' ? ' selected' : '') + '>Sub</option></select>' +
+                    '<select class="pl-m"><option value="">+ New player</option>' + sq.map(function (p) { return '<option value="' + p.id + '"' + (g && g.id === p.id ? ' selected' : '') + '>' + (p.jersey_number != null ? '#' + p.jersey_number + ' ' : '') + esc(pn(p)) + '</option>'; }).join('') + '</select>' +
+                    '<select class="pl-pos" style="visibility:' + (g ? 'hidden' : 'visible') + '"><option value="">Pos?</option>' + ['GK', 'DEF', 'MID', 'FWD'].map(function (p) { return '<option' + (l.pos === p ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></div>';
+            }).join('') + '<button type="button" class="pl-b pri" data-pa="apply">Apply line-up</button><div class="pl-msg"></div>';
+    }
+    async function apply(host, btn) {
+        var teamId = Number(host.dataset.t), lines = REV[teamId] || [], msg = host.querySelector('.pl-msg'), plan = [], news = [];
+        var rows = [].slice.call(host.querySelectorAll('.pl-r'));
+        msg.className = 'pl-msg';
+        for (var i = 0; i < rows.length; i++) {
+            var r = rows[i], l = lines[Number(r.dataset.i)], mid = r.querySelector('.pl-m').value, pos = r.querySelector('.pl-pos').value, role = r.querySelector('.pl-role').value;
+            if (!mid && !pos) { msg.className = 'pl-msg pl-bad'; msg.textContent = 'Choose a position for ' + l.name + '.'; return; }
+            var item = { role: role, id: mid || null, line: l, pos: pos };
+            plan.push(item);
+            if (!mid) news.push({ full_name: l.name, team_id: teamId, position: pos, num: l.num, sub: role === 'sub', item: item });
+        }
+        var starters = plan.filter(function (x) { return x.role === 'start'; }).length;
+        if (starters > 11) { msg.className = 'pl-msg pl-bad'; msg.textContent = 'That is ' + starters + ' starters. A team can have at most 11.'; return; }
+        btn.disabled = true; btn.textContent = 'Working...';
+        try {
+            var created = await createPlayers(news.map(function (n) { return { full_name: n.full_name, team_id: n.team_id, position: n.position, num: n.num, sub: n.sub }; }));
+            created.forEach(function (p, i) { news[i].item.id = p.id; });
+            var sels = document.querySelectorAll('#me-body .me-sel[data-t="' + teamId + '"]');
+            [].forEach.call(sels, function (s) { s.value = ''; });
+            plan.forEach(function (x) {
+                var s = document.querySelector('#me-body .me-sel[data-p="' + x.id + '"]');
+                if (!s) s = addRow(teamId, playerById(x.id));
+                if (s) s.value = x.role;
+            });
+            msg.className = 'pl-msg pl-ok';
+            msg.textContent = 'Done: ' + starters + ' starters, ' + (plan.length - starters) + ' subs' + (created.length ? ', ' + created.length + ' new player' + (created.length === 1 ? '' : 's') + ' added to the roster' : '') + '. Press Save at the bottom to keep it.';
+            if (created.length) reloadRoster();
+        } catch (e) {
+            msg.className = 'pl-msg pl-bad'; msg.textContent = 'Could not add players: ' + e.message;
+        }
+        btn.disabled = false; btn.textContent = 'Apply line-up';
+    }
+    function addRow(teamId, p) {
+        if (!p) return null;
+        var any = document.querySelector('#me-body .me-sel[data-t="' + teamId + '"]'), box = any ? any.closest('.me-lu-box') : null;
+        if (!box) {
+            var names = ($('me-sub').textContent || '').split(' vs '), boxes = document.querySelectorAll('#me-body .me-lu-box');
+            box = boxes[teamMap[teamId].name === names[0] ? 0 : 1];
+        }
+        if (!box) return null;
+        box.insertAdjacentHTML('beforeend', '<div class="me-lu"><span>' + esc(p.jersey_number == null ? '' : p.jersey_number + ' ') + esc(pn(p)) + ' <em style="color:#8F96A8;font-style:normal">' + esc(p.position || '') + ' (new)</em></span><select class="me-in me-sel" data-p="' + p.id + '" data-t="' + teamId + '"><option value="">-</option><option value="start">Starter</option><option value="sub">Sub</option></select></div>');
+        return box.querySelector('.me-sel[data-p="' + p.id + '"]');
+    }
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-pa]'); if (!b) return;
+        var host = b.closest('[data-t]');
+        if (b.dataset.pa === 'check') check(host); else apply(host, b);
+    });
+    document.addEventListener('change', function (e) {
+        var m = e.target.closest('.pl-m'); if (!m) return;
+        var r = m.closest('.pl-r');
+        r.classList.toggle('new', !m.value);
+        r.querySelector('.pl-pos').style.visibility = m.value ? 'hidden' : 'visible';
+    });
+
+    /* ---------- result window: add a goalkeeper who is not in the roster ---------- */
+    var prevOpen = window.openResultModal;
+    if (typeof prevOpen === 'function') window.openResultModal = async function (id) {
+        await prevOpen(id);
+        ['rs-h', 'rs-a'].forEach(function (sid) {
+            var s = $(sid);
+            if (s && !s.querySelector('option[value="__new"]')) s.insertAdjacentHTML('beforeend', '<option value="__new">+ Add a new goalkeeper...</option>');
+        });
+    };
+    document.addEventListener('change', async function (e) {
+        var s = e.target; if (!s || (s.id !== 'rs-h' && s.id !== 'rs-a') || s.value !== '__new') return;
+        var m = matchesById[activeResultMatchId]; if (!m) { s.value = ''; return; }
+        var teamId = s.id === 'rs-h' ? m.home_team_id : m.away_team_id;
+        var name = prompt('Goalkeeper full name for ' + teamName(teamId) + ':');
+        if (!name || !name.trim()) { s.value = ''; return; }
+        try {
+            var rows = await createPlayers([{ full_name: name.trim(), team_id: teamId, position: 'GK', num: '', sub: false }]);
+            var o = document.createElement('option'); o.value = rows[0].id; o.textContent = pn(rows[0]);
+            s.insertBefore(o, s.querySelector('option[value="__new"]')); s.value = rows[0].id;
+            toast(name.trim() + ' added to ' + teamName(teamId) + '.'); reloadRoster();
+        } catch (err) { s.value = ''; toast('Could not add the goalkeeper: ' + err.message); }
+    });
+
+    /* ---------- Players Roster: Remove button (owner only) ---------- */
+    var prevRender = window.renderPlayers;
+    if (typeof prevRender === 'function') window.renderPlayers = function (data) {
+        prevRender(data);
+        var cards = document.querySelectorAll('#players-container .card');
+        (data || []).forEach(function (p, i) {
+            var c = cards[i], bar = c && c.querySelector('.inj-card-actions');
+            if (bar && !bar.querySelector('.pl-del')) bar.insertAdjacentHTML('beforeend', '<button class="danger pl-del" data-id="' + p.id + '">Remove</button>');
+        });
+    };
+    document.addEventListener('click', async function (e) {
+        var b = e.target.closest('.pl-del'); if (!b) return;
+        e.stopPropagation();
+        var p = playerById(b.dataset.id); if (!p) return;
+        if (!confirm('Remove ' + pn(p) + ' from the roster? This cannot be undone.')) return;
+        try {
+            var r = await fetch(DB_URL + '/players?id=eq.' + p.id, { method: 'DELETE', headers: headers });
+            if (!r.ok) throw new Error(r.status === 409 ? 'this player is already used in goals, line-ups or Fantasy teams' : 'HTTP ' + r.status);
+            await reloadRoster(); toast(pn(p) + ' removed.');
+        } catch (err) { toast('Could not remove: ' + err.message); }
+    }, true);
+    setTimeout(reloadRoster, 2500);
+})();
+</script>
+<style>
+.pl-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.pl-ta{width:100%;min-height:150px;background:#171A24;border:1px solid #232735;border-radius:8px;color:#fff;padding:10px;font-size:.82rem;font-family:inherit;resize:vertical}
+.pl-ta:focus{outline:none;border-color:#FFC72C}
+.pl-b{background:rgba(255,255,255,.07);border:1px solid #232735;color:#fff;font-family:inherit;font-weight:700;font-size:.8rem;padding:9px 14px;border-radius:8px;cursor:pointer;margin-top:8px}
+.pl-b:hover{border-color:#FFC72C}
+.pl-b.pri{background:#E31B23;border-color:#E31B23}
+.pl-r{display:grid;grid-template-columns:34px 1fr 84px 1.1fr 72px;gap:6px;align-items:center;padding:6px 0;border-top:1px solid rgba(255,255,255,.06);font-size:.8rem}
+.pl-r select{background:#171A24;border:1px solid #232735;border-radius:6px;color:#fff;padding:6px;font-size:.78rem;font-family:inherit;width:100%}
+.pl-r.new .pl-m{border-color:#FFC72C}
+.pl-note{color:#8F96A8;font-size:.78rem;margin:0 0 10px;line-height:1.45}
+.pl-ok{color:#10B981;font-size:.82rem;margin-top:8px}
+.pl-bad{color:#FF6B70;font-size:.82rem;margin-top:8px}
+@media(max-width:700px){.pl-cols{grid-template-columns:1fr}.pl-r{grid-template-columns:30px 1fr 1fr}.pl-r .pl-m,.pl-r .pl-pos{grid-column:1/-1}}
+</style>
+<script>
+(function () {
+    if (window.__fkfLineups) return; window.__fkfLineups = true;
+    var POSMAP = {
+        'goalkeeper': 'GK', 'keeper': 'GK',
+        'right back': 'DEF', 'left back': 'DEF', 'centre back': 'DEF', 'center back': 'DEF', 'defender': 'DEF', 'right wing back': 'DEF', 'left wing back': 'DEF', 'wing back': 'DEF',
+        'defensive midfielder': 'MID', 'centre mid': 'MID', 'center mid': 'MID', 'central midfielder': 'MID', 'midfielder': 'MID', 'centre attacking midfielder': 'MID', 'attacking midfielder': 'MID', 'right midfielder': 'MID', 'left midfielder': 'MID',
+        'right winger': 'FWD', 'left winger': 'FWD', 'winger': 'FWD', 'striker': 'FWD', 'forward': 'FWD', 'centre forward': 'FWD', 'second striker': 'FWD'
+    };
+    var KEYS = Object.keys(POSMAP).sort(function (a, b) { return b.length - a.length; });
+    var REV = {};
+
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { return escapeHtml(s); }
+    function pn(p) { return p.known_as || p.full_name; }
+    function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+    function toks(s) { return norm(s).split(' ').filter(Boolean); }
+    function allPlayers() { var o = []; Object.keys(playersByTeam).forEach(function (k) { o = o.concat(playersByTeam[k]); }); return o; }
+    function playerById(id) { return allPlayers().filter(function (p) { return p.id == id; })[0] || null; }
+    function teamByName(n) { return Object.keys(teamMap).map(function (k) { return teamMap[k]; }).filter(function (t) { return t.name === n; })[0] || null; }
+    async function get(path) {
+        var r = await fetch(DB_URL + path, { headers: headers });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    }
+    function toast(m) { var t = $('adm-toast'); if (!t) return; t.textContent = m; t.style.display = 'block'; setTimeout(function () { t.style.display = 'none'; }, 4000); }
+
+    /* ---------- create players that are missing from a club roster ---------- */
+    function shortName(full) {
+        var t = full.trim().split(/\s+/);
+        return t.length < 2 ? full.trim() : t[0].charAt(0).toUpperCase() + '. ' + t[t.length - 1];
+    }
+    async function createPlayers(list) {
+        if (!list.length) return [];
+        var body = list.map(function (x) {
+            return { full_name: x.full_name, known_as: shortName(x.full_name), team_id: x.team_id, position: x.position, jersey_number: x.num === '' || x.num == null ? null : Number(x.num), is_substitute: !!x.sub };
+        });
+        var H = Object.assign({}, headers, { 'Prefer': 'return=representation' });
+        var r = await fetch(DB_URL + '/players', { method: 'POST', headers: H, body: JSON.stringify(body) });
+        if (!r.ok) {
+            var mx = await get('/players?select=id&order=id.desc&limit=1');
+            var next = (mx[0] ? Number(mx[0].id) : 0) + 1;
+            body.forEach(function (b, i) { b.id = next + i; });
+            r = await fetch(DB_URL + '/players', { method: 'POST', headers: H, body: JSON.stringify(body) });
+            if (!r.ok) throw new Error('HTTP ' + r.status + (r.status === 401 || r.status === 403 ? ' (admin login needed)' : ''));
+        }
+        var rows = await r.json();
+        rows.forEach(function (p) { (playersByTeam[p.team_id] = playersByTeam[p.team_id] || []).push(p); });
+        return rows;
+    }
+    async function reloadRoster() {
+        try {
+            var list = await get('/players?select=*');
+            Object.keys(playersByTeam).forEach(function (k) { delete playersByTeam[k]; });
+            list.forEach(function (p) { (playersByTeam[p.team_id] = playersByTeam[p.team_id] || []).push(p); });
+            if (window.renderPlayers) renderPlayers(list);
+            if (window.renderClubs) renderClubs(Object.keys(teamMap).map(function (k) { return teamMap[k]; }));
+        } catch (e) { console.error('Roster reload failed:', e); }
+    }
+
+    /* ---------- read an SPL line-up pasted as text ---------- */
+    function parse(text, teamName) {
+        var role = 'start', out = [], cur = null, skip = norm(teamName);
+        function push() { if (cur && cur.name) { cur.role = role; out.push(cur); } cur = null; }
+        String(text).split(/\r?\n/).forEach(function (line) {
+            line.split(/\t+| {3,}/).forEach(function (piece) {
+                piece = piece.trim(); if (!piece) return;
+                var low = piece.toLowerCase();
+                if (/^starting/.test(low)) { push(); role = 'start'; return; }
+                if (/^(substitut|bench)/.test(low)) { push(); role = 'sub'; return; }
+                if (norm(piece) === skip || /^(line ?up|preview|stats)$/.test(low)) return;
+                if (/^\d{1,3}$/.test(piece)) { push(); cur = { num: piece, name: '', pos: '' }; return; }
+                var m = piece.match(/^(\d{1,3})[\s.\-)]+(.+)$/);
+                if (m) { push(); cur = { num: m[1], name: '', pos: '' }; piece = m[2]; low = piece.toLowerCase(); }
+                if (POSMAP[low]) { if (cur) cur.pos = POSMAP[low]; return; }
+                var pos = '';
+                for (var i = 0; i < KEYS.length; i++) {
+                    var k = KEYS[i];
+                    if (low.length > k.length + 1 && low.slice(-k.length) === k && low.charAt(low.length - k.length - 1) === ' ') { pos = POSMAP[k]; piece = piece.slice(0, piece.length - k.length).trim(); break; }
+                }
+                if (cur && cur.name) push();
+                if (!cur) cur = { num: '', name: '', pos: '' };
+                cur.name = piece; if (pos) cur.pos = pos;
+            });
+        });
+        push(); return out;
+    }
+    function guess(teamId, name, num) {
+        var sq = playersByTeam[teamId] || [], n = norm(name), t = toks(name), best = null, last = t[t.length - 1];
+        sq.forEach(function (p) { if (!best && (norm(p.full_name) === n || norm(p.known_as) === n)) best = p; });
+        if (best) return best;
+        sq.forEach(function (p) { var pt = toks(p.full_name); if (!best && t.length >= 2 && (t.every(function (x) { return pt.indexOf(x) > -1; }) || pt.every(function (x) { return t.indexOf(x) > -1; }))) best = p; });
+        if (best) return best;
+        sq.forEach(function (p) { var pt = toks(p.known_as || p.full_name); if (!best && t.length >= 2 && pt.length >= 2 && pt[pt.length - 1] === last && pt[0].charAt(0) === t[0].charAt(0)) best = p; });
+        if (best) return best;
+        sq.forEach(function (p) { var pt = toks(p.full_name); if (!best && num !== '' && String(p.jersey_number) === String(num) && last && pt.some(function (x) { return x.slice(0, 4) === last.slice(0, 4); })) best = p; });
+        return best;
+    }
+
+    /* ---------- the paste box inside the Match details window ---------- */
+    function teamsOfEditor() {
+        var parts = ($('me-sub') ? $('me-sub').textContent : '').split(' vs ');
+        return parts.map(teamByName).filter(Boolean);
+    }
+    function inject() {
+        var body = $('me-body'); if (!body || $('pl-box')) return;
+        var T = teamsOfEditor(); if (T.length < 2) return;
+        var sec = document.createElement('div');
+        sec.className = 'me-sec'; sec.id = 'pl-box';
+        sec.innerHTML = '<h4>Paste line-up from SPL</h4><p class="pl-note">Copy one team\'s list from the SPL match page (with the STARTING XI and SUBSTITUTES headings), paste it, then press Check. Players missing from your roster are added to the club.</p><div class="pl-cols">' +
+            T.map(function (t) { return '<div data-t="' + t.id + '"><div style="font-weight:800;margin-bottom:6px">' + esc(t.name) + '</div><textarea class="pl-ta" placeholder="STARTING XI&#10;22 Elvis Ochieng Osok Right back&#10;..."></textarea><button type="button" class="pl-b" data-pa="check">Check line-up</button><div class="pl-rev"></div></div>'; }).join('') + '</div>';
+        var target = [].slice.call(body.querySelectorAll('.me-sec')).filter(function (s) { var h = s.querySelector('h4'); return h && /^Line-ups/.test(h.textContent); })[0];
+        if (target) body.insertBefore(sec, target); else body.appendChild(sec);
+    }
+    var mb = $('me-body');
+    if (mb) new MutationObserver(inject).observe(mb, { childList: true });
+
+    function byName(a, b) { return pn(a).localeCompare(pn(b)); }
+    function check(host) {
+        var teamId = host.dataset.t, t = teamMap[teamId], text = host.querySelector('.pl-ta').value;
+        var lines = parse(text, t.name), rev = host.querySelector('.pl-rev');
+        REV[teamId] = lines;
+        if (!lines.length) { rev.innerHTML = '<div class="pl-bad">Nothing found. Paste the full list, with numbers and names.</div>'; return; }
+        var sq = (playersByTeam[teamId] || []).slice().sort(byName);
+        rev.innerHTML = '<p class="pl-note" style="margin-top:10px">Check each row. Rows with a gold border are not in your roster yet and will be added. If a name is spelled differently in your roster, pick that player instead.</p>' +
+            lines.map(function (l, i) {
+                var g = guess(teamId, l.name, l.num);
+                return '<div class="pl-r' + (g ? '' : ' new') + '" data-i="' + i + '"><b>' + esc(l.num) + '</b><span>' + esc(l.name) + '</span>' +
+                    '<select class="pl-role"><option value="start"' + (l.role === 'start' ? ' selected' : '') + '>Starter</option><option value="sub"' + (l.role === 'sub' ? ' selected' : '') + '>Sub</option></select>' +
+                    '<select class="pl-m"><option value="">+ New player</option>' + sq.map(function (p) { return '<option value="' + p.id + '"' + (g && g.id === p.id ? ' selected' : '') + '>' + (p.jersey_number != null ? '#' + p.jersey_number + ' ' : '') + esc(pn(p)) + '</option>'; }).join('') + '</select>' +
+                    '<select class="pl-pos" style="visibility:' + (g ? 'hidden' : 'visible') + '"><option value="">Pos?</option>' + ['GK', 'DEF', 'MID', 'FWD'].map(function (p) { return '<option' + (l.pos === p ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></div>';
+            }).join('') + '<button type="button" class="pl-b pri" data-pa="apply">Apply line-up</button><div class="pl-msg"></div>';
+    }
+    async function apply(host, btn) {
+        var teamId = Number(host.dataset.t), lines = REV[teamId] || [], msg = host.querySelector('.pl-msg'), plan = [], news = [];
+        var rows = [].slice.call(host.querySelectorAll('.pl-r'));
+        msg.className = 'pl-msg';
+        for (var i = 0; i < rows.length; i++) {
+            var r = rows[i], l = lines[Number(r.dataset.i)], mid = r.querySelector('.pl-m').value, pos = r.querySelector('.pl-pos').value, role = r.querySelector('.pl-role').value;
+            if (!mid && !pos) { msg.className = 'pl-msg pl-bad'; msg.textContent = 'Choose a position for ' + l.name + '.'; return; }
+            var item = { role: role, id: mid || null, line: l, pos: pos };
+            plan.push(item);
+            if (!mid) news.push({ full_name: l.name, team_id: teamId, position: pos, num: l.num, sub: role === 'sub', item: item });
+        }
+        var starters = plan.filter(function (x) { return x.role === 'start'; }).length;
+        if (starters > 11) { msg.className = 'pl-msg pl-bad'; msg.textContent = 'That is ' + starters + ' starters. A team can have at most 11.'; return; }
+        btn.disabled = true; btn.textContent = 'Working...';
+        try {
+            var created = await createPlayers(news.map(function (n) { return { full_name: n.full_name, team_id: n.team_id, position: n.position, num: n.num, sub: n.sub }; }));
+            created.forEach(function (p, i) { news[i].item.id = p.id; });
+            var sels = document.querySelectorAll('#me-body .me-sel[data-t="' + teamId + '"]');
+            [].forEach.call(sels, function (s) { s.value = ''; });
+            plan.forEach(function (x) {
+                var s = document.querySelector('#me-body .me-sel[data-p="' + x.id + '"]');
+                if (!s) s = addRow(teamId, playerById(x.id));
+                if (s) s.value = x.role;
+            });
+            msg.className = 'pl-msg pl-ok';
+            msg.textContent = 'Done: ' + starters + ' starters, ' + (plan.length - starters) + ' subs' + (created.length ? ', ' + created.length + ' new player' + (created.length === 1 ? '' : 's') + ' added to the roster' : '') + '. Press Save at the bottom to keep it.';
+            if (created.length) reloadRoster();
+        } catch (e) {
+            msg.className = 'pl-msg pl-bad'; msg.textContent = 'Could not add players: ' + e.message;
+        }
+        btn.disabled = false; btn.textContent = 'Apply line-up';
+    }
+    function addRow(teamId, p) {
+        if (!p) return null;
+        var any = document.querySelector('#me-body .me-sel[data-t="' + teamId + '"]'), box = any ? any.closest('.me-lu-box') : null;
+        if (!box) {
+            var names = ($('me-sub').textContent || '').split(' vs '), boxes = document.querySelectorAll('#me-body .me-lu-box');
+            box = boxes[teamMap[teamId].name === names[0] ? 0 : 1];
+        }
+        if (!box) return null;
+        box.insertAdjacentHTML('beforeend', '<div class="me-lu"><span>' + esc(p.jersey_number == null ? '' : p.jersey_number + ' ') + esc(pn(p)) + ' <em style="color:#8F96A8;font-style:normal">' + esc(p.position || '') + ' (new)</em></span><select class="me-in me-sel" data-p="' + p.id + '" data-t="' + teamId + '"><option value="">-</option><option value="start">Starter</option><option value="sub">Sub</option></select></div>');
+        return box.querySelector('.me-sel[data-p="' + p.id + '"]');
+    }
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-pa]'); if (!b) return;
+        var host = b.closest('[data-t]');
+        if (b.dataset.pa === 'check') check(host); else apply(host, b);
+    });
+    document.addEventListener('change', function (e) {
+        var m = e.target.closest('.pl-m'); if (!m) return;
+        var r = m.closest('.pl-r');
+        r.classList.toggle('new', !m.value);
+        r.querySelector('.pl-pos').style.visibility = m.value ? 'hidden' : 'visible';
+    });
+
+    /* ---------- result window: add a goalkeeper who is not in the roster ---------- */
+    var prevOpen = window.openResultModal;
+    if (typeof prevOpen === 'function') window.openResultModal = async function (id) {
+        await prevOpen(id);
+        ['rs-h', 'rs-a'].forEach(function (sid) {
+            var s = $(sid);
+            if (s && !s.querySelector('option[value="__new"]')) s.insertAdjacentHTML('beforeend', '<option value="__new">+ Add a new goalkeeper...</option>');
+        });
+    };
+    document.addEventListener('change', async function (e) {
+        var s = e.target; if (!s || (s.id !== 'rs-h' && s.id !== 'rs-a') || s.value !== '__new') return;
+        var m = matchesById[activeResultMatchId]; if (!m) { s.value = ''; return; }
+        var teamId = s.id === 'rs-h' ? m.home_team_id : m.away_team_id;
+        var name = prompt('Goalkeeper full name for ' + teamName(teamId) + ':');
+        if (!name || !name.trim()) { s.value = ''; return; }
+        try {
+            var rows = await createPlayers([{ full_name: name.trim(), team_id: teamId, position: 'GK', num: '', sub: false }]);
+            var o = document.createElement('option'); o.value = rows[0].id; o.textContent = pn(rows[0]);
+            s.insertBefore(o, s.querySelector('option[value="__new"]')); s.value = rows[0].id;
+            toast(name.trim() + ' added to ' + teamName(teamId) + '.'); reloadRoster();
+        } catch (err) { s.value = ''; toast('Could not add the goalkeeper: ' + err.message); }
+    });
+
+    /* ---------- Players Roster: Remove button (owner only) ---------- */
+    var prevRender = window.renderPlayers;
+    if (typeof prevRender === 'function') window.renderPlayers = function (data) {
+        prevRender(data);
+        var cards = document.querySelectorAll('#players-container .card');
+        (data || []).forEach(function (p, i) {
+            var c = cards[i], bar = c && c.querySelector('.inj-card-actions');
+            if (bar && !bar.querySelector('.pl-del')) bar.insertAdjacentHTML('beforeend', '<button class="danger pl-del" data-id="' + p.id + '">Remove</button>');
+        });
+    };
+    document.addEventListener('click', async function (e) {
+        var b = e.target.closest('.pl-del'); if (!b) return;
+        e.stopPropagation();
+        var p = playerById(b.dataset.id); if (!p) return;
+        if (!confirm('Remove ' + pn(p) + ' from the roster? This cannot be undone.')) return;
+        try {
+            var r = await fetch(DB_URL + '/players?id=eq.' + p.id, { method: 'DELETE', headers: headers });
+            if (!r.ok) throw new Error(r.status === 409 ? 'this player is already used in goals, line-ups or Fantasy teams' : 'HTTP ' + r.status);
+            await reloadRoster(); toast(pn(p) + ' removed.');
+        } catch (err) { toast('Could not remove: ' + err.message); }
+    }, true);
+    setTimeout(reloadRoster, 2500);
+})();
+</script>
+<style>
+.pl-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.pl-ta{width:100%;min-height:150px;background:#171A24;border:1px solid #232735;border-radius:8px;color:#fff;padding:10px;font-size:.82rem;font-family:inherit;resize:vertical}
+.pl-ta:focus{outline:none;border-color:#FFC72C}
+.pl-b{background:rgba(255,255,255,.07);border:1px solid #232735;color:#fff;font-family:inherit;font-weight:700;font-size:.8rem;padding:9px 14px;border-radius:8px;cursor:pointer;margin-top:8px}
+.pl-b:hover{border-color:#FFC72C}
+.pl-b.pri{background:#E31B23;border-color:#E31B23}
+.pl-r{display:grid;grid-template-columns:34px 1fr 84px 1.1fr 72px;gap:6px;align-items:center;padding:6px 0;border-top:1px solid rgba(255,255,255,.06);font-size:.8rem}
+.pl-r select{background:#171A24;border:1px solid #232735;border-radius:6px;color:#fff;padding:6px;font-size:.78rem;font-family:inherit;width:100%}
+.pl-r.new .pl-m{border-color:#FFC72C}
+.pl-note{color:#8F96A8;font-size:.78rem;margin:0 0 10px;line-height:1.45}
+.pl-ok{color:#10B981;font-size:.82rem;margin-top:8px}
+.pl-bad{color:#FF6B70;font-size:.82rem;margin-top:8px}
+@media(max-width:700px){.pl-cols{grid-template-columns:1fr}.pl-r{grid-template-columns:30px 1fr 1fr}.pl-r .pl-m,.pl-r .pl-pos{grid-column:1/-1}}
+</style>
+<script>
+(function () {
+    if (window.__fkfLineups) return; window.__fkfLineups = true;
+    var POSMAP = {
+        'goalkeeper': 'GK', 'keeper': 'GK',
+        'right back': 'DEF', 'left back': 'DEF', 'centre back': 'DEF', 'center back': 'DEF', 'defender': 'DEF', 'right wing back': 'DEF', 'left wing back': 'DEF', 'wing back': 'DEF',
+        'defensive midfielder': 'MID', 'centre mid': 'MID', 'center mid': 'MID', 'central midfielder': 'MID', 'midfielder': 'MID', 'centre attacking midfielder': 'MID', 'attacking midfielder': 'MID', 'right midfielder': 'MID', 'left midfielder': 'MID',
+        'right winger': 'FWD', 'left winger': 'FWD', 'winger': 'FWD', 'striker': 'FWD', 'forward': 'FWD', 'centre forward': 'FWD', 'second striker': 'FWD'
+    };
+    var KEYS = Object.keys(POSMAP).sort(function (a, b) { return b.length - a.length; });
+    var REV = {};
+
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { return escapeHtml(s); }
+    function pn(p) { return p.known_as || p.full_name; }
+    function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+    function toks(s) { return norm(s).split(' ').filter(Boolean); }
+    function allPlayers() { var o = []; Object.keys(playersByTeam).forEach(function (k) { o = o.concat(playersByTeam[k]); }); return o; }
+    function playerById(id) { return allPlayers().filter(function (p) { return p.id == id; })[0] || null; }
+    function teamByName(n) { return Object.keys(teamMap).map(function (k) { return teamMap[k]; }).filter(function (t) { return t.name === n; })[0] || null; }
+    async function get(path) {
+        var r = await fetch(DB_URL + path, { headers: headers });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    }
+    function toast(m) { var t = $('adm-toast'); if (!t) return; t.textContent = m; t.style.display = 'block'; setTimeout(function () { t.style.display = 'none'; }, 4000); }
+
+    /* ---------- create players that are missing from a club roster ---------- */
+    function shortName(full) {
+        var t = full.trim().split(/\s+/);
+        return t.length < 2 ? full.trim() : t[0].charAt(0).toUpperCase() + '. ' + t[t.length - 1];
+    }
+    async function createPlayers(list) {
+        if (!list.length) return [];
+        var body = list.map(function (x) {
+            return { full_name: x.full_name, known_as: shortName(x.full_name), team_id: x.team_id, position: x.position, jersey_number: x.num === '' || x.num == null ? null : Number(x.num), is_substitute: !!x.sub };
+        });
+        var H = Object.assign({}, headers, { 'Prefer': 'return=representation' });
+        var r = await fetch(DB_URL + '/players', { method: 'POST', headers: H, body: JSON.stringify(body) });
+        if (!r.ok) {
+            var mx = await get('/players?select=id&order=id.desc&limit=1');
+            var next = (mx[0] ? Number(mx[0].id) : 0) + 1;
+            body.forEach(function (b, i) { b.id = next + i; });
+            r = await fetch(DB_URL + '/players', { method: 'POST', headers: H, body: JSON.stringify(body) });
+            if (!r.ok) throw new Error('HTTP ' + r.status + (r.status === 401 || r.status === 403 ? ' (admin login needed)' : ''));
+        }
+        var rows = await r.json();
+        rows.forEach(function (p) { (playersByTeam[p.team_id] = playersByTeam[p.team_id] || []).push(p); });
+        return rows;
+    }
+    async function reloadRoster() {
+        try {
+            var list = await get('/players?select=*');
+            Object.keys(playersByTeam).forEach(function (k) { delete playersByTeam[k]; });
+            list.forEach(function (p) { (playersByTeam[p.team_id] = playersByTeam[p.team_id] || []).push(p); });
+            if (window.renderPlayers) renderPlayers(list);
+            if (window.renderClubs) renderClubs(Object.keys(teamMap).map(function (k) { return teamMap[k]; }));
+        } catch (e) { console.error('Roster reload failed:', e); }
+    }
+
+    /* ---------- read an SPL line-up pasted as text ---------- */
+    function parse(text, teamName) {
+        var role = 'start', out = [], cur = null, skip = norm(teamName);
+        function push() { if (cur && cur.name) { cur.role = role; out.push(cur); } cur = null; }
+        String(text).split(/\r?\n/).forEach(function (line) {
+            line.split(/\t+| {3,}/).forEach(function (piece) {
+                piece = piece.trim(); if (!piece) return;
+                var low = piece.toLowerCase();
+                if (/^starting/.test(low)) { push(); role = 'start'; return; }
+                if (/^(substitut|bench)/.test(low)) { push(); role = 'sub'; return; }
+                if (norm(piece) === skip || /^(line ?up|preview|stats)$/.test(low)) return;
+                if (/^\d{1,3}$/.test(piece)) { push(); cur = { num: piece, name: '', pos: '' }; return; }
+                var m = piece.match(/^(\d{1,3})[\s.\-)]+(.+)$/);
+                if (m) { push(); cur = { num: m[1], name: '', pos: '' }; piece = m[2]; low = piece.toLowerCase(); }
+                if (POSMAP[low]) { if (cur) cur.pos = POSMAP[low]; return; }
+                var pos = '';
+                for (var i = 0; i < KEYS.length; i++) {
+                    var k = KEYS[i];
+                    if (low.length > k.length + 1 && low.slice(-k.length) === k && low.charAt(low.length - k.length - 1) === ' ') { pos = POSMAP[k]; piece = piece.slice(0, piece.length - k.length).trim(); break; }
+                }
+                if (cur && cur.name) push();
+                if (!cur) cur = { num: '', name: '', pos: '' };
+                cur.name = piece; if (pos) cur.pos = pos;
+            });
+        });
+        push(); return out;
+    }
+    function guess(teamId, name, num) {
+        var sq = playersByTeam[teamId] || [], n = norm(name), t = toks(name), best = null, last = t[t.length - 1];
+        sq.forEach(function (p) { if (!best && (norm(p.full_name) === n || norm(p.known_as) === n)) best = p; });
+        if (best) return best;
+        sq.forEach(function (p) { var pt = toks(p.full_name); if (!best && t.length >= 2 && (t.every(function (x) { return pt.indexOf(x) > -1; }) || pt.every(function (x) { return t.indexOf(x) > -1; }))) best = p; });
+        if (best) return best;
+        sq.forEach(function (p) { var pt = toks(p.known_as || p.full_name); if (!best && t.length >= 2 && pt.length >= 2 && pt[pt.length - 1] === last && pt[0].charAt(0) === t[0].charAt(0)) best = p; });
+        if (best) return best;
+        sq.forEach(function (p) { var pt = toks(p.full_name); if (!best && num !== '' && String(p.jersey_number) === String(num) && last && pt.some(function (x) { return x.slice(0, 4) === last.slice(0, 4); })) best = p; });
+        return best;
+    }
+
+    /* ---------- the paste box inside the Match details window ---------- */
+    function teamsOfEditor() {
+        var parts = ($('me-sub') ? $('me-sub').textContent : '').split(' vs ');
+        return parts.map(teamByName).filter(Boolean);
+    }
+    function inject() {
+        var body = $('me-body'); if (!body || $('pl-box')) return;
+        var T = teamsOfEditor(); if (T.length < 2) return;
+        var sec = document.createElement('div');
+        sec.className = 'me-sec'; sec.id = 'pl-box';
+        sec.innerHTML = '<h4>Paste line-up from SPL</h4><p class="pl-note">Copy one team\'s list from the SPL match page (with the STARTING XI and SUBSTITUTES headings), paste it, then press Check. Players missing from your roster are added to the club.</p><div class="pl-cols">' +
+            T.map(function (t) { return '<div data-t="' + t.id + '"><div style="font-weight:800;margin-bottom:6px">' + esc(t.name) + '</div><textarea class="pl-ta" placeholder="STARTING XI&#10;22 Elvis Ochieng Osok Right back&#10;..."></textarea><button type="button" class="pl-b" data-pa="check">Check line-up</button><div class="pl-rev"></div></div>'; }).join('') + '</div>';
+        var target = [].slice.call(body.querySelectorAll('.me-sec')).filter(function (s) { var h = s.querySelector('h4'); return h && /^Line-ups/.test(h.textContent); })[0];
+        if (target) body.insertBefore(sec, target); else body.appendChild(sec);
+    }
+    var mb = $('me-body');
+    if (mb) new MutationObserver(inject).observe(mb, { childList: true });
+
+    function byName(a, b) { return pn(a).localeCompare(pn(b)); }
+    function check(host) {
+        var teamId = host.dataset.t, t = teamMap[teamId], text = host.querySelector('.pl-ta').value;
+        var lines = parse(text, t.name), rev = host.querySelector('.pl-rev');
+        REV[teamId] = lines;
+        if (!lines.length) { rev.innerHTML = '<div class="pl-bad">Nothing found. Paste the full list, with numbers and names.</div>'; return; }
+        var sq = (playersByTeam[teamId] || []).slice().sort(byName);
+        rev.innerHTML = '<p class="pl-note" style="margin-top:10px">Check each row. Rows with a gold border are not in your roster yet and will be added. If a name is spelled differently in your roster, pick that player instead.</p>' +
+            lines.map(function (l, i) {
+                var g = guess(teamId, l.name, l.num);
+                return '<div class="pl-r' + (g ? '' : ' new') + '" data-i="' + i + '"><b>' + esc(l.num) + '</b><span>' + esc(l.name) + '</span>' +
+                    '<select class="pl-role"><option value="start"' + (l.role === 'start' ? ' selected' : '') + '>Starter</option><option value="sub"' + (l.role === 'sub' ? ' selected' : '') + '>Sub</option></select>' +
+                    '<select class="pl-m"><option value="">+ New player</option>' + sq.map(function (p) { return '<option value="' + p.id + '"' + (g && g.id === p.id ? ' selected' : '') + '>' + (p.jersey_number != null ? '#' + p.jersey_number + ' ' : '') + esc(pn(p)) + '</option>'; }).join('') + '</select>' +
+                    '<select class="pl-pos" style="visibility:' + (g ? 'hidden' : 'visible') + '"><option value="">Pos?</option>' + ['GK', 'DEF', 'MID', 'FWD'].map(function (p) { return '<option' + (l.pos === p ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></div>';
+            }).join('') + '<button type="button" class="pl-b pri" data-pa="apply">Apply line-up</button><div class="pl-msg"></div>';
+    }
+    async function apply(host, btn) {
+        var teamId = Number(host.dataset.t), lines = REV[teamId] || [], msg = host.querySelector('.pl-msg'), plan = [], news = [];
+        var rows = [].slice.call(host.querySelectorAll('.pl-r'));
+        msg.className = 'pl-msg';
+        for (var i = 0; i < rows.length; i++) {
+            var r = rows[i], l = lines[Number(r.dataset.i)], mid = r.querySelector('.pl-m').value, pos = r.querySelector('.pl-pos').value, role = r.querySelector('.pl-role').value;
+            if (!mid && !pos) { msg.className = 'pl-msg pl-bad'; msg.textContent = 'Choose a position for ' + l.name + '.'; return; }
+            var item = { role: role, id: mid || null, line: l, pos: pos };
+            plan.push(item);
+            if (!mid) news.push({ full_name: l.name, team_id: teamId, position: pos, num: l.num, sub: role === 'sub', item: item });
+        }
+        var starters = plan.filter(function (x) { return x.role === 'start'; }).length;
+        if (starters > 11) { msg.className = 'pl-msg pl-bad'; msg.textContent = 'That is ' + starters + ' starters. A team can have at most 11.'; return; }
+        btn.disabled = true; btn.textContent = 'Working...';
+        try {
+            var created = await createPlayers(news.map(function (n) { return { full_name: n.full_name, team_id: n.team_id, position: n.position, num: n.num, sub: n.sub }; }));
+            created.forEach(function (p, i) { news[i].item.id = p.id; });
+            var sels = document.querySelectorAll('#me-body .me-sel[data-t="' + teamId + '"]');
+            [].forEach.call(sels, function (s) { s.value = ''; });
+            plan.forEach(function (x) {
+                var s = document.querySelector('#me-body .me-sel[data-p="' + x.id + '"]');
+                if (!s) s = addRow(teamId, playerById(x.id));
+                if (s) s.value = x.role;
+            });
+            msg.className = 'pl-msg pl-ok';
+            msg.textContent = 'Done: ' + starters + ' starters, ' + (plan.length - starters) + ' subs' + (created.length ? ', ' + created.length + ' new player' + (created.length === 1 ? '' : 's') + ' added to the roster' : '') + '. Press Save at the bottom to keep it.';
+            if (created.length) reloadRoster();
+        } catch (e) {
+            msg.className = 'pl-msg pl-bad'; msg.textContent = 'Could not add players: ' + e.message;
+        }
+        btn.disabled = false; btn.textContent = 'Apply line-up';
+    }
+    function addRow(teamId, p) {
+        if (!p) return null;
+        var any = document.querySelector('#me-body .me-sel[data-t="' + teamId + '"]'), box = any ? any.closest('.me-lu-box') : null;
+        if (!box) {
+            var names = ($('me-sub').textContent || '').split(' vs '), boxes = document.querySelectorAll('#me-body .me-lu-box');
+            box = boxes[teamMap[teamId].name === names[0] ? 0 : 1];
+        }
+        if (!box) return null;
+        box.insertAdjacentHTML('beforeend', '<div class="me-lu"><span>' + esc(p.jersey_number == null ? '' : p.jersey_number + ' ') + esc(pn(p)) + ' <em style="color:#8F96A8;font-style:normal">' + esc(p.position || '') + ' (new)</em></span><select class="me-in me-sel" data-p="' + p.id + '" data-t="' + teamId + '"><option value="">-</option><option value="start">Starter</option><option value="sub">Sub</option></select></div>');
+        return box.querySelector('.me-sel[data-p="' + p.id + '"]');
+    }
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-pa]'); if (!b) return;
+        var host = b.closest('[data-t]');
+        if (b.dataset.pa === 'check') check(host); else apply(host, b);
+    });
+    document.addEventListener('change', function (e) {
+        var m = e.target.closest('.pl-m'); if (!m) return;
+        var r = m.closest('.pl-r');
+        r.classList.toggle('new', !m.value);
+        r.querySelector('.pl-pos').style.visibility = m.value ? 'hidden' : 'visible';
+    });
+
+    /* ---------- result window: add a goalkeeper who is not in the roster ---------- */
+    var prevOpen = window.openResultModal;
+    if (typeof prevOpen === 'function') window.openResultModal = async function (id) {
+        await prevOpen(id);
+        ['rs-h', 'rs-a'].forEach(function (sid) {
+            var s = $(sid);
+            if (s && !s.querySelector('option[value="__new"]')) s.insertAdjacentHTML('beforeend', '<option value="__new">+ Add a new goalkeeper...</option>');
+        });
+    };
+    document.addEventListener('change', async function (e) {
+        var s = e.target; if (!s || (s.id !== 'rs-h' && s.id !== 'rs-a') || s.value !== '__new') return;
+        var m = matchesById[activeResultMatchId]; if (!m) { s.value = ''; return; }
+        var teamId = s.id === 'rs-h' ? m.home_team_id : m.away_team_id;
+        var name = prompt('Goalkeeper full name for ' + teamName(teamId) + ':');
+        if (!name || !name.trim()) { s.value = ''; return; }
+        try {
+            var rows = await createPlayers([{ full_name: name.trim(), team_id: teamId, position: 'GK', num: '', sub: false }]);
+            var o = document.createElement('option'); o.value = rows[0].id; o.textContent = pn(rows[0]);
+            s.insertBefore(o, s.querySelector('option[value="__new"]')); s.value = rows[0].id;
+            toast(name.trim() + ' added to ' + teamName(teamId) + '.'); reloadRoster();
+        } catch (err) { s.value = ''; toast('Could not add the goalkeeper: ' + err.message); }
+    });
+
+    /* ---------- Players Roster: Remove button (owner only) ---------- */
+    var prevRender = window.renderPlayers;
+    if (typeof prevRender === 'function') window.renderPlayers = function (data) {
+        prevRender(data);
+        var cards = document.querySelectorAll('#players-container .card');
+        (data || []).forEach(function (p, i) {
+            var c = cards[i], bar = c && c.querySelector('.inj-card-actions');
+            if (bar && !bar.querySelector('.pl-del')) bar.insertAdjacentHTML('beforeend', '<button class="danger pl-del" data-id="' + p.id + '">Remove</button>');
+        });
+    };
+    document.addEventListener('click', async function (e) {
+        var b = e.target.closest('.pl-del'); if (!b) return;
+        e.stopPropagation();
+        var p = playerById(b.dataset.id); if (!p) return;
+        if (!confirm('Remove ' + pn(p) + ' from the roster? This cannot be undone.')) return;
+        try {
+            var r = await fetch(DB_URL + '/players?id=eq.' + p.id, { method: 'DELETE', headers: headers });
+            if (!r.ok) throw new Error(r.status === 409 ? 'this player is already used in goals, line-ups or Fantasy teams' : 'HTTP ' + r.status);
+            await reloadRoster(); toast(pn(p) + ' removed.');
+        } catch (err) { toast('Could not remove: ' + err.message); }
+    }, true);
+    setTimeout(reloadRoster, 2500);
+})();
+</script>
 </body>
 </html>
