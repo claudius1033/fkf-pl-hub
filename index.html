@@ -6877,7 +6877,7 @@ textarea.me-in{min-height:80px;resize:vertical}
     }, true);
     setTimeout(reloadRoster, 2500);
 })();
-</script><!-- BLOCK 1: black+green header line, club badges in Clean Sheets (Clubs). Paste directly above </body> -->
+</script>
 <style>
 .section-banner::after{background:linear-gradient(90deg,#0a0a0a 0 50%,#0b7a3e 50% 100%) !important}
 .stat-row .player-avatar-frame.cs-badge{background:transparent !important;border-radius:0}
@@ -6913,7 +6913,7 @@ textarea.me-in{min-height:80px;resize:vertical}
         };
     }
 })();
-</script><!-- BLOCK 2: goalkeeper clean sheets load fix + black/green card top lines. Paste directly above </body>, below Block 1 -->
+</script>
 <style>
 .card::before{background:linear-gradient(90deg,#0a0a0a,#0b7a3e) !important}
 </style>
@@ -6958,6 +6958,583 @@ textarea.me-in{min-height:80px;resize:vertical}
             return r;
         };
     }
+})();
+</script>
+
+<style>
+#players-container .card.static{cursor:pointer}
+.manager-header-block{cursor:pointer}
+.manager-header-block .meta-val::after{content:"  \203A  View squad";color:#FFC72C;font-weight:700;font-size:.72rem;letter-spacing:.3px}
+</style>
+<script>
+(function () {
+    if (window.__fkfNav) return; window.__fkfNav = true;
+    function clean(el) {
+        if (!el) return '';
+        var c = el.cloneNode(true);
+        c.querySelectorAll('.crest, .tb-star, .tb-st, img').forEach(function (n) { n.remove(); });
+        return c.textContent.replace(/^[\s★]*(#\S+\s+)?/, '').trim();
+    }
+    function teamByName(n) {
+        n = (n || '').trim();
+        return Object.keys(teamMap).map(function (k) { return teamMap[k]; }).filter(function (t) { return t.name === n; })[0] || null;
+    }
+    function tabBtn(key) {
+        var f = null;
+        document.querySelectorAll('.nav-links button').forEach(function (b) {
+            if ((b.getAttribute('onclick') || '').indexOf("'" + key + "'") !== -1) f = b;
+        });
+        return f;
+    }
+    function flash(el) {
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.remove('fkf-flash'); void el.offsetWidth; el.classList.add('fkf-flash');
+    }
+    function goClub(name) {
+        var t = teamByName(name); if (!t) return;
+        if (window.closeLineupModal) window.closeLineupModal();
+        window.switchTab('clubs', { currentTarget: tabBtn('clubs') });
+        setTimeout(function () {
+            var cards = document.querySelectorAll('#clubs-container .card');
+            for (var i = 0; i < cards.length; i++) {
+                if (clean(cards[i].querySelector('.club-title')) === t.name) { flash(cards[i]); break; }
+            }
+        }, 80);
+    }
+    function goRoster(name, club) {
+        if (window.closeLineupModal) window.closeLineupModal();
+        window.switchTab('players', { currentTarget: tabBtn('players') });
+        var panel = document.getElementById('players-panel') || document;
+        panel.querySelectorAll('input[type="text"], input[type="search"]').forEach(function (i) {
+            if (i.value) { i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); }
+        });
+        setTimeout(function () {
+            var cards = document.querySelectorAll('#players-container .card'), hit = null;
+            for (var i = 0; i < cards.length; i++) {
+                if (clean(cards[i].querySelector('.player-name')) === name && clean(cards[i].querySelector('.club-name')) === club) { hit = cards[i]; break; }
+                if (!hit && clean(cards[i].querySelector('.player-name')) === name) hit = cards[i];
+            }
+            if (hit) flash(hit);
+            else { var m = document.querySelector('main'); if (m) m.scrollTop = 0; }
+        }, 120);
+    }
+    window.addEventListener('click', function (e) {
+        if (e.target.closest('button, a, select, input, textarea')) return;
+        var t;
+        /* Statistics: player row -> Players Roster (club rows keep going to the club) */
+        if ((t = e.target.closest('#stats-container .stat-row'))) {
+            var sub = clean(t.querySelector('.club-name'));
+            if (sub === 'Club') return;
+            e.stopPropagation(); e.preventDefault();
+            goRoster(clean(t.querySelector('.stat-name')), sub);
+            return;
+        }
+        /* Players Roster: player card -> that club in Clubs List */
+        if ((t = e.target.closest('#players-container .card'))) {
+            var cn = clean(t.querySelector('.club-name'));
+            if (!teamByName(cn)) return;
+            e.stopPropagation(); e.preventDefault();
+            goClub(cn);
+            return;
+        }
+    }, true);
+})();
+</script><style>
+.tb-ph{width:46px;height:46px;border-radius:50%;margin:0 auto 5px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.75rem;color:#fff;border:2px solid rgba(27,20,5,.65);box-sizing:border-box}
+.tb-ph img{width:100%;height:100%;object-fit:cover;display:block}
+.tb-card{flex:0 1 96px !important;padding-top:10px !important}
+.tb-card.empty{opacity:.35}
+.sq-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.sq-head .meta-line{gap:10px}
+.sq-mgr{width:92px;text-align:center;flex:none}
+.sq-mgr .mph{width:84px;height:84px;margin:0 auto;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;border:2px solid #FFC72C;box-sizing:border-box}
+.sq-mgr .mph img{width:100%;height:100%;object-fit:cover;display:block}
+.sq-mgr small{display:block;margin-top:5px;font-size:.62rem;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#FFC72C}
+.sq-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.sq-bar label{font-size:.7rem;font-weight:800;text-transform:uppercase;color:#8F96A8}
+.sq-bar select{background:#171A24;border:1px solid #232735;border-radius:6px;color:#fff;padding:6px 8px;font-family:inherit;font-size:.8rem}
+.sq-bar .sq-note{font-size:.75rem;color:#8F96A8}
+.sq-edit-btn{display:none;margin-left:auto;background:#FFC72C;color:#1b1405;border:0;border-radius:8px;font-family:inherit;font-weight:800;font-size:.72rem;text-transform:uppercase;padding:8px 12px;cursor:pointer}
+body.is-admin .sq-edit-btn{display:inline-block}
+#sq-ed{position:fixed;inset:0;z-index:1300;background:rgba(7,7,9,.88);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:14px}
+#sq-ed.open{display:flex}
+.sq-ed-frame{position:relative;width:760px;max-width:100%;max-height:92vh;overflow-y:auto;background:#0f1218;border:1px solid #232735;border-radius:16px;padding:22px}
+.sq-ed-frame h3{margin:0 0 4px;font-size:1.1rem}
+.sq-ed-x{position:absolute;top:10px;right:14px;background:none;border:0;color:#fff;font-size:1.6rem;cursor:pointer}
+.sq-ed-top{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}
+.sq-ed-top div{display:flex;flex-direction:column;gap:4px}
+.sq-ed-top label,.sq-ed-lbl{font-size:.68rem;font-weight:800;text-transform:uppercase;color:#8F96A8;letter-spacing:.5px}
+.sq-ed-frame input[type=number],.sq-ed-frame select{background:#171A24;border:1px solid #232735;border-radius:6px;color:#fff;padding:8px;font-family:inherit;font-size:.85rem}
+.sq-ed-frame input[type=number]{width:90px}
+.sq-line{margin:12px 0}
+.sq-line-slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:5px}
+.sq-line-slots select{width:100%}
+.sq-bench{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;margin-top:6px}
+.sq-bench label{display:flex;gap:6px;align-items:center;font-size:.78rem;color:#dfe3ee;background:#171A24;border:1px solid #232735;border-radius:6px;padding:6px 8px;cursor:pointer}
+.sq-ed-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.sq-ed-btns button{border:0;border-radius:8px;font-family:inherit;font-weight:800;font-size:.78rem;text-transform:uppercase;padding:11px 16px;cursor:pointer}
+#sq-save{background:#FFC72C;color:#1b1405}
+#sq-del{background:#2a1215;color:#FF6B70}
+#sq-msg{margin-top:10px;font-size:.82rem}
+</style>
+<script>
+(function () {
+    if (window.__fkfSquad) return; window.__fkfSquad = true;
+    var FORMS = {
+        '4-3-3': [4, 3, 3], '4-4-2': [4, 4, 2], '4-2-3-1': [4, 2, 3, 1], '3-5-2': [3, 5, 2],
+        '3-4-3': [3, 4, 3], '5-3-2': [5, 3, 2], '5-4-1': [5, 4, 1], '4-5-1': [4, 5, 1], '4-1-4-1': [4, 1, 4, 1]
+    };
+    var cur = null, lineups = [], goals = [], gw = null, busy = false, loadedGw = null;
+
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { return escapeHtml(s == null ? '' : s); }
+    function pn(p) { return p.known_as || p.full_name || '?'; }
+    function pos(p) { return String(p.position || '').toUpperCase(); }
+    function squad(t) { return (playersByTeam[t] || []).slice(); }
+    function byId(t, id) { return squad(t).filter(function (p) { return p.id == id; })[0] || null; }
+    function counts(p) {
+        var g = 0, a = 0;
+        goals.forEach(function (x) { if (x.player_id == p.id) g++; if (x.assist_player_id == p.id) a++; });
+        return { g: g, a: a };
+    }
+    async function get(path) {
+        var r = await fetch(DB_URL + path, { headers: headers });
+        if (!r.ok) throw new Error(path.split('?')[0] + ' HTTP ' + r.status);
+        return r.json();
+    }
+    function lineCounts(f) { return [1].concat(FORMS[f] || FORMS['4-3-3']); }
+
+    /* auto line-up used until the admin saves one */
+    function autoLineup(t) {
+        var all = squad(t).sort(function (a, b) { return ((a.is_substitute ? 1 : 0) - (b.is_substitute ? 1 : 0)) || ((a.jersey_number || 99) - (b.jersey_number || 99)); });
+        var lc = lineCounts('4-3-3'), codes = ['GK', 'DEF', 'MID', 'FWD'], out = [], used = {};
+        codes.forEach(function (c, i) {
+            var g = all.filter(function (p) { return pos(p) === c && !used[p.id]; }).slice(0, lc[i]);
+            g.forEach(function (p) { used[p.id] = 1; out.push(p.id); });
+            for (var k = g.length; k < lc[i]; k++) out.push(null);
+        });
+        var bench = all.filter(function (p) { return !used[p.id]; }).filter(function (p) { return p.is_substitute; }).slice(0, 9).map(function (p) { return p.id; });
+        return { formation: '4-3-3', starters: out, bench: bench, auto: true };
+    }
+    function current() {
+        var l = lineups.filter(function (x) { return x.gameweek === gw; })[0];
+        if (l) return { formation: l.formation, starters: l.starters || [], bench: l.bench || [], auto: false, gameweek: l.gameweek };
+        return autoLineup(cur);
+    }
+
+    function card(p) {
+        var c = counts(p), nm = pn(p);
+        var num = (p.jersey_number !== null && p.jersey_number !== undefined && p.jersey_number !== '') ? '#' + esc(p.jersey_number) + ' ' : '';
+        return '<div class="tb-card"><div class="tb-ph" style="background-color:' + paletteColor(nm) + '">' + avatarHtml(nm, p.image_url) + '</div>' +
+            '<div class="tb-n">' + num + esc(nm) + '</div><div class="tb-r">' + esc(pos(p) || '—') + '</div>' +
+            '<div class="tb-s">' + ((c.g || c.a) ? 'G ' + c.g + ' · A ' + c.a : '') + '</div></div>';
+    }
+    function item(p) {
+        var num = (p.jersey_number !== null && p.jersey_number !== undefined && p.jersey_number !== '') ? '#' + esc(p.jersey_number) + ' ' : '';
+        return '<li class="rail-item"><span>' + num + esc(pn(p)) + '</span><span>' + esc(pos(p) || '—') + '</span></li>';
+    }
+
+    function render() {
+        if (cur === null) return;
+        var team = teamMap[cur] || {}, L = current(), t = cur;
+        busy = true;
+        var lc = lineCounts(L.formation), lines = [], idx = 0;
+        lc.forEach(function (n) { lines.push(L.starters.slice(idx, idx + n)); idx += n; });
+        while (lines.length < lc.length) lines.push([]);
+        var pitch = $('pitch-canvas');
+        pitch.className = 'pitch-canvas tb-board';
+        var any = L.starters.some(function (x) { return x; });
+        pitch.innerHTML = any ? lines.slice().reverse().map(function (ids, i) {
+            var n = lc[lc.length - 1 - i];
+            var cells = [];
+            for (var k = 0; k < n; k++) {
+                var p = ids[k] ? byId(t, ids[k]) : null;
+                cells.push(p ? card(p) : '<div class="tb-card empty"><div class="tb-ph" style="background:#3d2c06">?</div><div class="tb-n">Empty</div></div>');
+            }
+            return '<div class="tb-line">' + cells.join('') + '</div>';
+        }).join('') : '<div class="empty-state" style="z-index:5;text-align:center;color:#fff">No players for this club yet.</div>';
+
+        var benchP = L.bench.map(function (id) { return byId(t, id); }).filter(Boolean);
+        var usedIds = {}; L.starters.concat(L.bench).forEach(function (id) { if (id) usedIds[id] = 1; });
+        var reserves = squad(t).filter(function (p) { return !usedIds[p.id]; });
+        var gws = lineups.map(function (x) { return x.gameweek; }).sort(function (a, b) { return b - a; });
+        var bar = gws.length
+            ? '<label>Gameweek</label><select id="sq-gw">' + gws.map(function (g) { return '<option value="' + g + '"' + (g === gw ? ' selected' : '') + '>GW ' + g + '</option>'; }).join('') + '</select><span class="sq-note">Formation ' + esc(L.formation) + '</span>'
+            : '<span class="sq-note">Line-up for the coming gameweek is not published yet.</span>';
+        var mn = team.manager || 'N/A';
+        $('roster-rail').innerHTML =
+            '<div class="rail-section"><div class="sq-head"><div><h3>' + esc(team.name || 'Squad') + '</h3>' +
+            '<div class="meta-line" style="border-top:none;padding-top:0;"><span>Manager</span><span class="meta-val">' + esc(mn) + '</span></div></div>' +
+            '<div class="sq-mgr"><div class="mph" style="background-color:' + paletteColor(mn) + '">' + avatarHtml(mn, team.manager_image) + '</div><small>Manager</small></div></div>' +
+            '<div class="sq-bar">' + bar + '<button class="sq-edit-btn" id="sq-edit">Edit line-up</button></div></div>' +
+            '<div class="rail-section"><h3>Substitutes</h3><ul class="rail-list">' +
+            (benchP.length ? benchP.map(item).join('') : '<li class="rail-item"><span>No substitutes on record</span></li>') + '</ul></div>' +
+            (reserves.length ? '<div class="rail-section"><h3>Reserves (' + reserves.length + ')</h3><ul class="rail-list">' + reserves.map(item).join('') + '</ul></div>' : '');
+        var sel = $('sq-gw');
+        if (sel) sel.onchange = function () { gw = Number(sel.value); render(); };
+        var eb = $('sq-edit'); if (eb) eb.onclick = openEditor;
+        setTimeout(function () { busy = false; }, 0);
+    }
+
+    async function load(t) {
+        try { lineups = await get('/club_lineups?select=*&team_id=eq.' + t + '&order=gameweek.desc'); } catch (e) { lineups = []; }
+        try { goals = await get('/goals?select=player_id,assist_player_id'); } catch (e) { goals = []; }
+        if (cur !== t) return;
+        if (!lineups.some(function (x) { return x.gameweek === gw; })) gw = lineups.length ? lineups[0].gameweek : null;
+        render();
+    }
+
+    var prev = window.openLineupModal;
+    window.openLineupModal = function (t) {
+        if (typeof prev === 'function') prev(t);
+        cur = t; lineups = []; gw = null;
+        render();
+        load(t);
+    };
+    var prevClose = window.closeLineupModal;
+    window.closeLineupModal = function () { cur = null; if (prevClose) prevClose(); };
+
+    /* when the older code redraws the pitch every few seconds, redraw ours straight after */
+    var mo = new MutationObserver(function () {
+        if (busy || cur === null) return;
+        render();
+        mo.takeRecords();
+    });
+    mo.observe($('pitch-canvas'), { childList: true });
+    mo.observe($('roster-rail'), { childList: true });
+
+    /* ---------------- admin editor ---------------- */
+    var ed = document.createElement('div');
+    ed.id = 'sq-ed';
+    ed.innerHTML = '<div class="sq-ed-frame"><button class="sq-ed-x" id="sq-x">&times;</button><h3 id="sq-title">Edit line-up</h3>' +
+        '<div class="sq-ed-top"><div><label>Gameweek</label><input type="number" id="sq-gwin" min="1" max="60"></div>' +
+        '<div><label>Formation</label><select id="sq-form"></select></div></div>' +
+        '<div id="sq-slots"></div><div class="sq-ed-lbl" style="margin-top:16px">Substitutes (tick the players on the bench)</div><div class="sq-bench" id="sq-bench"></div>' +
+        '<div class="sq-ed-btns"><button id="sq-save">Save line-up</button><button id="sq-del">Delete this gameweek</button></div><div id="sq-msg"></div></div>';
+    document.body.appendChild(ed);
+    $('sq-form').innerHTML = Object.keys(FORMS).map(function (f) { return '<option>' + f + '</option>'; }).join('');
+    function closeEd() { ed.classList.remove('open'); }
+    $('sq-x').onclick = closeEd;
+    ed.addEventListener('click', function (e) { if (e.target === ed) closeEd(); });
+
+    function playerOptions(sel) {
+        var order = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
+        var list = squad(cur).sort(function (a, b) { return ((order[pos(a)] === undefined ? 9 : order[pos(a)]) - (order[pos(b)] === undefined ? 9 : order[pos(b)])) || pn(a).localeCompare(pn(b)); });
+        return '<option value="">- empty -</option>' + list.map(function (p) {
+            return '<option value="' + p.id + '"' + (String(sel) === String(p.id) ? ' selected' : '') + '>' + (p.jersey_number !== null && p.jersey_number !== undefined && p.jersey_number !== '' ? '#' + esc(p.jersey_number) + ' ' : '') + esc(pn(p)) + ' (' + esc(pos(p) || '-') + ')</option>';
+        }).join('');
+    }
+    function buildSlots(formation, starters, bench) {
+        var lc = lineCounts(formation), names = ['Goalkeeper'], mids = lc.length - 3, i;
+        names.push('Defence');
+        for (i = 0; i < mids; i++) names.push(mids > 1 ? 'Midfield ' + (i + 1) : 'Midfield');
+        names.push('Attack');
+        var html = '', idx = 0;
+        lc.forEach(function (n, li) {
+            html += '<div class="sq-line"><div class="sq-ed-lbl">' + names[li] + '</div><div class="sq-line-slots">';
+            for (var k = 0; k < n; k++) { html += '<select class="sq-slot" data-i="' + idx + '">' + playerOptions(starters[idx]) + '</select>'; idx++; }
+            html += '</div></div>';
+        });
+        $('sq-slots').innerHTML = html;
+        document.querySelectorAll('#sq-slots .sq-slot').forEach(function (s) {
+            s.onchange = function () {
+                if (!s.value) return;
+                document.querySelectorAll('#sq-slots .sq-slot').forEach(function (o) { if (o !== s && o.value === s.value) o.value = ''; });
+                drawBench();
+            };
+        });
+        $('sq-bench').dataset.keep = JSON.stringify(bench || []);
+        drawBench();
+    }
+    function drawBench() {
+        var keep = {}; try { JSON.parse($('sq-bench').dataset.keep || '[]').forEach(function (id) { keep[id] = 1; }); } catch (e) {}
+        document.querySelectorAll('#sq-bench input:checked').forEach(function (c) { keep[c.value] = 1; });
+        var used = {}; document.querySelectorAll('#sq-slots .sq-slot').forEach(function (s) { if (s.value) used[s.value] = 1; });
+        $('sq-bench').dataset.keep = '[]';
+        $('sq-bench').innerHTML = squad(cur).filter(function (p) { return !used[p.id]; }).sort(function (a, b) { return pn(a).localeCompare(pn(b)); }).map(function (p) {
+            return '<label><input type="checkbox" value="' + p.id + '"' + (keep[p.id] ? ' checked' : '') + '> ' + esc(pn(p)) + ' <span style="color:#8F96A8">' + esc(pos(p) || '') + '</span></label>';
+        }).join('');
+    }
+    function fillFor(g) {
+        loadedGw = g;
+        var l = lineups.filter(function (x) { return x.gameweek === g; })[0];
+        var base = l ? { formation: l.formation, starters: l.starters || [], bench: l.bench || [] } : (function () { var a = autoLineup(cur); return { formation: a.formation, starters: a.starters, bench: a.bench }; })();
+        $('sq-form').value = FORMS[base.formation] ? base.formation : '4-3-3';
+        buildSlots($('sq-form').value, base.starters, base.bench);
+        $('sq-del').style.display = l ? '' : 'none';
+        $('sq-msg').textContent = l ? '' : 'No saved line-up for this gameweek yet. The boxes start from the automatic line-up.';
+        $('sq-msg').style.color = '#8F96A8';
+    }
+    function openEditor() {
+        if (cur === null) return;
+        var next = lineups.length ? Math.max.apply(null, lineups.map(function (x) { return x.gameweek; })) + 1 : 1;
+        var start = gw || next;
+        $('sq-title').textContent = 'Edit line-up: ' + ((teamMap[cur] || {}).name || '');
+        $('sq-gwin').value = start;
+        fillFor(start);
+        ed.classList.add('open');
+    }
+    $('sq-gwin').onchange = function () {
+        var g = Number($('sq-gwin').value);
+        if (!(g >= 1) || g === loadedGw) return;
+        var l = lineups.filter(function (x) { return x.gameweek === g; })[0];
+        if (l) {
+            if (confirm('Gameweek ' + g + ' already has a saved line-up. Load it? This replaces what is on screen.')) fillFor(g);
+            else $('sq-gwin').value = loadedGw;
+        } else {
+            loadedGw = g;
+            $('sq-del').style.display = 'none';
+            msg('Gameweek ' + g + ' has no saved line-up yet. Saving will create it from what you picked.', true);
+        }
+    };
+    $('sq-form').onchange = function () {
+        var cur11 = []; document.querySelectorAll('#sq-slots .sq-slot').forEach(function (s) { cur11.push(s.value ? Number(s.value) : null); });
+        buildSlots($('sq-form').value, cur11, []);
+    };
+    function msg(t, ok) { $('sq-msg').textContent = t; $('sq-msg').style.color = ok ? '#10B981' : '#FF6B70'; }
+    $('sq-save').onclick = async function () {
+        var g = Number($('sq-gwin').value);
+        if (!(g >= 1)) { msg('Enter a gameweek number.', false); return; }
+        var starters = []; document.querySelectorAll('#sq-slots .sq-slot').forEach(function (s) { starters.push(s.value ? Number(s.value) : null); });
+        var bench = []; document.querySelectorAll('#sq-bench input:checked').forEach(function (c) { bench.push(Number(c.value)); });
+        var btn = $('sq-save'); btn.disabled = true; btn.textContent = 'Saving...';
+        try {
+            var h = Object.assign({}, headers, { 'Prefer': 'resolution=merge-duplicates,return=minimal' });
+            var r = await fetch(DB_URL + '/club_lineups?on_conflict=team_id,gameweek', { method: 'POST', headers: h, body: JSON.stringify({ team_id: cur, gameweek: g, formation: $('sq-form').value, starters: starters, bench: bench, updated_at: new Date().toISOString() }) });
+            if (!r.ok) throw new Error('HTTP ' + r.status + (r.status === 401 || r.status === 403 ? ' (log in as admin first)' : (r.status === 404 ? ' (run the line-ups SQL first)' : '')));
+            lineups = await get('/club_lineups?select=*&team_id=eq.' + cur + '&order=gameweek.desc');
+            gw = g; render(); msg('Saved for gameweek ' + g + '.', true);
+            setTimeout(closeEd, 700);
+        } catch (e) { msg('Could not save: ' + e.message, false); }
+        btn.disabled = false; btn.textContent = 'Save line-up';
+    };
+    $('sq-del').onclick = async function () {
+        var g = Number($('sq-gwin').value);
+        if (!confirm('Delete the saved line-up for gameweek ' + g + '?')) return;
+        try {
+            var r = await fetch(DB_URL + '/club_lineups?team_id=eq.' + cur + '&gameweek=eq.' + g, { method: 'DELETE', headers: headers });
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            lineups = await get('/club_lineups?select=*&team_id=eq.' + cur + '&order=gameweek.desc');
+            gw = lineups.length ? lineups[0].gameweek : null; render(); closeEd();
+        } catch (e) { msg('Could not delete: ' + e.message, false); }
+    };
+})();
+</script><style>
+#pitch-canvas .tb-line{gap:10px}
+#pitch-canvas .tb-card.sqc{flex:0 1 94px !important;aspect-ratio:1/1.06;padding:0 !important;margin:0;clip-path:none !important;border-radius:10px !important;background:#0c1116 !important;border:2px solid #FFC72C !important;box-shadow:0 6px 14px rgba(0,0,0,.6) !important;overflow:hidden;position:relative;display:block}
+#pitch-canvas .tb-card.sqc::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.5) 0,rgba(0,0,0,0) 34%,rgba(0,0,0,0) 55%,rgba(0,0,0,.88) 100%)}
+.sqc .sqc-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.7rem;font-weight:900;color:#fff;overflow:hidden}
+.sqc .sqc-ph img{width:100%;height:100%;object-fit:cover;object-position:center 15%;display:block}
+.sqc .sqc-pos{position:absolute;top:3px;left:6px;z-index:2;line-height:1;text-shadow:0 1px 3px #000}
+.sqc .sqc-pos b{display:block;color:#fff;font-size:.62rem;font-weight:800}
+.sqc .sqc-pos i{display:block;font-style:normal;color:#FFE600;font-size:1rem;font-weight:900;margin-top:1px}
+.sqc .sqc-ga{position:absolute;top:4px;right:4px;z-index:2;font-size:.52rem;font-weight:800;color:#FFC72C;background:rgba(0,0,0,.7);padding:1px 4px;border-radius:3px}
+.sqc .sqc-crest{position:absolute;left:5px;bottom:21px;z-index:2;width:21px;height:21px;border-radius:50%;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:.45rem;color:#000;border:1px solid rgba(0,0,0,.4)}
+.sqc .sqc-crest img{width:100%;height:100%;object-fit:contain;display:block}
+#pitch-canvas .sqc .tb-n{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:4px 3px 5px;font-size:.7rem !important;font-weight:800;color:#fff !important;text-align:center;text-shadow:0 1px 3px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sqc.empty .sqc-ph{background:#1b222b !important;font-size:1.4rem;color:#6a7385}
+</style>
+<script>
+(function () {
+    if (window.__fkfSquare) return; window.__fkfSquare = true;
+    var pitch = document.getElementById('pitch-canvas');
+    if (!pitch) return;
+    function teamNow() {
+        var h = document.querySelector('#roster-rail .rail-section h3');
+        var nm = h ? h.textContent.trim() : '';
+        var k = Object.keys(teamMap);
+        for (var i = 0; i < k.length; i++) if (teamMap[k[i]].name === nm) return teamMap[k[i]];
+        return null;
+    }
+    function crestHtml(t) {
+        if (!t || !t.crest_url || !/^https?:\/\//i.test(String(t.crest_url).trim())) return '';
+        return '<div class="sqc-crest"><img src="' + String(t.crest_url).replace(/"/g, '&quot;') + '" alt="" onerror="this.parentElement.remove()"></div>';
+    }
+    function transform() {
+        var t = teamNow();
+        pitch.querySelectorAll('.tb-card:not(.sqc)').forEach(function (card) {
+            var ph = card.querySelector('.tb-ph'), n = card.querySelector('.tb-n'), r = card.querySelector('.tb-r'), s = card.querySelector('.tb-s');
+            var raw = n ? n.textContent.trim() : '', m = raw.match(/^#(\S+)\s+(.*)$/);
+            var num = m ? m[1] : '', name = m ? m[2] : raw;
+            var empty = card.classList.contains('empty');
+            var ga = s ? s.textContent.trim().replace(/\s+/g, '').replace('·', ' ') : '';
+            card.classList.add('sqc');
+            card.innerHTML =
+                '<div class="sqc-ph" style="background-color:' + (ph ? ph.style.backgroundColor : '#1b222b') + '">' + (empty ? '+' : (ph ? ph.innerHTML : '')) + '</div>' +
+                (empty ? '' : '<div class="sqc-pos"><b>' + (r ? r.textContent.trim() : '') + '</b>' + (num ? '<i>' + num + '</i>' : '') + '</div>') +
+                (ga && !empty ? '<div class="sqc-ga">' + ga + '</div>' : '') +
+                (empty ? '' : crestHtml(t)) +
+                '<div class="tb-n">' + (empty ? 'Empty' : name.replace(/&/g, '&amp;').replace(/</g, '&lt;')) + '</div>';
+        });
+    }
+    new MutationObserver(transform).observe(pitch, { childList: true });
+    transform();
+})();
+</script><style>
+#referees-panel .rf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px;margin-top:6px}
+.rf-card{position:relative;background:var(--card-surface,#14171f);border:1px solid var(--border-crisp,#232735);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.rf-ph{aspect-ratio:1/1.05;display:flex;align-items:center;justify-content:center;font-size:2.6rem;font-weight:900;color:#fff;overflow:hidden}
+.rf-ph img{width:100%;height:100%;object-fit:cover;object-position:center 15%;display:block}
+.rf-info{padding:12px 14px 14px}
+.rf-name{font-weight:800;font-size:1rem;line-height:1.2}
+.rf-role{display:inline-block;margin-top:6px;font-size:.62rem;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#1b1405;background:#FFC72C;border-radius:4px;padding:2px 7px}
+.rf-count{margin-top:8px;font-size:.78rem;color:#8F96A8;font-weight:600}
+.rf-admin-bar{display:flex;gap:6px;padding:0 14px 14px}
+.rf-admin-bar button{flex:1;background:#171A24;border:1px solid #232735;color:#fff;border-radius:6px;font-family:inherit;font-weight:700;font-size:.7rem;text-transform:uppercase;padding:7px 4px;cursor:pointer}
+.rf-admin-bar button.rf-rm{color:#FF6B70}
+body:not(.is-admin) .rf-admin{display:none !important}
+#rf-modal{position:fixed;inset:0;z-index:1300;background:rgba(7,7,9,.88);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:14px}
+#rf-modal.open{display:flex}
+.rf-frame{position:relative;width:420px;max-width:100%;background:#0f1218;border:1px solid #232735;border-radius:16px;padding:22px}
+.rf-frame h3{margin:0 0 14px}
+.rf-x{position:absolute;top:10px;right:14px;background:none;border:0;color:#fff;font-size:1.6rem;cursor:pointer}
+.rf-f{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.rf-f label{font-size:.7rem;font-weight:800;text-transform:uppercase;color:#8F96A8;letter-spacing:.5px}
+.rf-f input,.rf-f select{background:#171A24;border:1px solid #232735;border-radius:8px;color:#fff;padding:10px;font-family:inherit;font-size:.9rem}
+.rf-prev{width:96px;height:96px;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.6rem;color:#fff;margin-bottom:12px}
+.rf-prev img{width:100%;height:100%;object-fit:cover}
+.rf-btns{display:flex;gap:8px;margin-top:6px}
+.rf-btns button{border:0;border-radius:8px;font-family:inherit;font-weight:800;font-size:.78rem;text-transform:uppercase;padding:11px 16px;cursor:pointer}
+#rf-save{background:#FFC72C;color:#1b1405}
+#rf-msg{margin-top:10px;font-size:.82rem}
+.rf-mini{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;overflow:hidden;vertical-align:middle;margin-right:7px;font-size:.55rem;font-weight:800;color:#fff}
+.rf-mini img{width:100%;height:100%;object-fit:cover}
+</style>
+<script>
+(function () {
+    if (window.__fkfReferees) return; window.__fkfReferees = true;
+    var ROLES = ['Referee', 'Assistant Referee', 'Fourth Official', 'VAR'];
+    var refs = [], used = {}, editId = null;
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { return escapeHtml(s == null ? '' : s); }
+    async function get(path) {
+        var r = await fetch(DB_URL + path, { headers: headers });
+        if (!r.ok) throw new Error(path.split('?')[0] + ' HTTP ' + r.status);
+        return r.json();
+    }
+
+    /* sidebar tab, right after Clubs List */
+    var ul = document.querySelector('.nav-links');
+    var li = document.createElement('li');
+    li.innerHTML = '<button id="nav-referees" onclick="switchTab(\'referees\', event)"><span class="nav-ico">⚖️</span>Referees</button>';
+    var after = null;
+    ul.querySelectorAll('button').forEach(function (b) { if ((b.getAttribute('onclick') || '').indexOf("'clubs'") !== -1) after = b.parentNode; });
+    if (after && after.nextSibling) ul.insertBefore(li, after.nextSibling); else ul.appendChild(li);
+
+    /* panel */
+    var panel = document.createElement('section');
+    panel.id = 'referees-panel'; panel.className = 'content-panel';
+    panel.innerHTML = '<div class="section-banner" id="banner-referees"><h1>Referees</h1><p class="subtitle">The match officials of the SportPesa League.</p></div>' +
+        '<div class="rf-admin" style="margin-bottom:18px"><button class="inj-add-btn" id="rf-add">+ Add referee</button></div>' +
+        '<div id="referees-container" class="rf-grid">Loading referees...</div>';
+    var last = document.getElementById('archive-panel');
+    if (last && last.parentNode) last.parentNode.insertBefore(panel, last.nextSibling); else document.querySelector('main').appendChild(panel);
+
+    function render() {
+        var box = $('referees-container');
+        if (!refs.length) { box.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No referees added yet.</div>'; return; }
+        box.innerHTML = refs.map(function (r) {
+            var n = used[String(r.name).toLowerCase()] || 0;
+            return '<div class="rf-card"><div class="rf-ph" style="background-color:' + paletteColor(r.name) + '">' + avatarHtml(r.name, r.image_url) + '</div>' +
+                '<div class="rf-info"><div class="rf-name">' + esc(r.name) + '</div><span class="rf-role">' + esc(r.role || 'Referee') + '</span>' +
+                (n ? '<div class="rf-count">' + n + (n === 1 ? ' match' : ' matches') + ' officiated</div>' : '') + '</div>' +
+                '<div class="rf-admin rf-admin-bar"><button data-edit="' + r.id + '">Edit</button><button class="rf-rm" data-rm="' + r.id + '">Remove</button></div></div>';
+        }).join('');
+    }
+    function fillDatalist() {
+        var dl = $('rf-names');
+        if (!dl) { dl = document.createElement('datalist'); dl.id = 'rf-names'; document.body.appendChild(dl); }
+        dl.innerHTML = refs.map(function (r) { return '<option value="' + esc(r.name) + '"></option>'; }).join('');
+    }
+    async function load() {
+        try { refs = await get('/referees?select=*&order=name.asc'); }
+        catch (e) { refs = []; $('referees-container').innerHTML = '<div class="empty-state" style="grid-column:1/-1">Referees are not set up yet (run the referees SQL).</div>'; return; }
+        try {
+            var rows = await get('/match_details?select=referee');
+            used = {}; rows.forEach(function (x) { if (x.referee) { var k = String(x.referee).trim().toLowerCase(); used[k] = (used[k] || 0) + 1; } });
+        } catch (e) { used = {}; }
+        render(); fillDatalist(); decorate();
+    }
+    var prevSwitch = window.switchTab;
+    window.switchTab = function (tabId, evt) { prevSwitch(tabId, evt); if (tabId === 'referees') load(); };
+    load();
+
+    /* add / edit window */
+    var m = document.createElement('div');
+    m.id = 'rf-modal';
+    m.innerHTML = '<div class="rf-frame"><button class="rf-x" id="rf-x">&times;</button><h3 id="rf-title">Add referee</h3>' +
+        '<div class="rf-prev" id="rf-prev"></div>' +
+        '<div class="rf-f"><label>Name</label><input id="rf-name" maxlength="60" placeholder="e.g. Peter Waweru"></div>' +
+        '<div class="rf-f"><label>Role</label><select id="rf-role">' + ROLES.map(function (r) { return '<option>' + r + '</option>'; }).join('') + '</select></div>' +
+        '<div class="rf-f"><label>Photo link (https://...)</label><input id="rf-img" placeholder="https://..."></div>' +
+        '<div class="rf-btns"><button id="rf-save">Save</button></div><div id="rf-msg"></div></div>';
+    document.body.appendChild(m);
+    function closeM() { m.classList.remove('open'); }
+    $('rf-x').onclick = closeM;
+    m.addEventListener('click', function (e) { if (e.target === m) closeM(); });
+    function preview() {
+        var n = $('rf-name').value.trim() || '?';
+        $('rf-prev').style.backgroundColor = paletteColor(n);
+        $('rf-prev').innerHTML = avatarHtml(n, $('rf-img').value.trim());
+    }
+    $('rf-name').oninput = preview; $('rf-img').oninput = preview;
+    function openM(r) {
+        editId = r ? r.id : null;
+        $('rf-title').textContent = r ? 'Edit referee' : 'Add referee';
+        $('rf-name').value = r ? r.name : ''; $('rf-role').value = r ? (r.role || 'Referee') : 'Referee'; $('rf-img').value = r ? (r.image_url || '') : '';
+        $('rf-msg').textContent = ''; preview(); m.classList.add('open');
+    }
+    $('rf-add').onclick = function () { openM(null); };
+    $('referees-container').addEventListener('click', async function (e) {
+        var b = e.target.closest('button'); if (!b) return;
+        if (b.dataset.edit) { openM(refs.filter(function (r) { return String(r.id) === b.dataset.edit; })[0]); return; }
+        if (b.dataset.rm) {
+            var r = refs.filter(function (x) { return String(x.id) === b.dataset.rm; })[0];
+            if (!r || !confirm('Remove ' + r.name + '?')) return;
+            try {
+                var res = await fetch(DB_URL + '/referees?id=eq.' + r.id, { method: 'DELETE', headers: headers });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                await load();
+            } catch (err) { alert('Could not remove: ' + err.message); }
+        }
+    });
+    $('rf-save').onclick = async function () {
+        var name = $('rf-name').value.trim();
+        var msg = $('rf-msg');
+        if (!name) { msg.style.color = '#FF6B70'; msg.textContent = 'Enter a name.'; return; }
+        var body = { name: name, role: $('rf-role').value, image_url: $('rf-img').value.trim() || null };
+        var btn = $('rf-save'); btn.disabled = true; btn.textContent = 'Saving...';
+        try {
+            var url = DB_URL + '/referees' + (editId ? '?id=eq.' + editId : '');
+            var h = Object.assign({}, headers, { 'Prefer': 'return=minimal' });
+            var res = await fetch(url, { method: editId ? 'PATCH' : 'POST', headers: h, body: JSON.stringify(body) });
+            if (!res.ok) throw new Error('HTTP ' + res.status + (res.status === 409 ? ' (that name already exists)' : res.status === 404 ? ' (run the referees SQL first)' : (res.status === 401 || res.status === 403 ? ' (log in as admin first)' : '')));
+            await load(); closeM();
+        } catch (err) { msg.style.color = '#FF6B70'; msg.textContent = 'Could not save: ' + err.message; }
+        btn.disabled = false; btn.textContent = 'Save';
+    };
+
+    /* match edit box suggests referee names; match page shows the referee photo */
+    function decorate() {
+        var inp = $('me-ref');
+        if (inp && !inp.getAttribute('list')) inp.setAttribute('list', 'rf-names');
+        document.querySelectorAll('.mc-row').forEach(function (row) {
+            if (row.dataset.rf) return;
+            var sp = row.querySelector('span'), b = row.querySelector('b');
+            if (!sp || !b) return;
+            var lab = sp.textContent.trim();
+            if (lab !== 'Referee' && lab !== 'Mwamuzi') return;
+            var r = refs.filter(function (x) { return String(x.name).toLowerCase() === b.textContent.trim().toLowerCase(); })[0];
+            row.dataset.rf = '1';
+            if (!r) return;
+            var mini = document.createElement('span');
+            mini.className = 'rf-mini'; mini.style.backgroundColor = paletteColor(r.name); mini.innerHTML = avatarHtml(r.name, r.image_url);
+            b.insertBefore(mini, b.firstChild);
+        });
+    }
+    var tmr = null;
+    new MutationObserver(function () { clearTimeout(tmr); tmr = setTimeout(decorate, 150); }).observe(document.body, { childList: true, subtree: true });
 })();
 </script>
 </body>
