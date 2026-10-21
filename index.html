@@ -6236,7 +6236,7 @@ textarea.me-in{min-height:80px;resize:vertical}
         if (best) return best;
         sq.forEach(function (p) { var pt = toks(p.full_name); if (!best && t.length >= 2 && (t.every(function (x) { return pt.indexOf(x) > -1; }) || pt.every(function (x) { return t.indexOf(x) > -1; }))) best = p; });
         if (best) return best;
-        sq.forEach(function (p) { var pt = toks(p.known_as || p.full_name); if (!best && t.length >= 2 && pt.length >= 2 && pt[pt.length - 1] === last && pt[0].charAt(0) === t[0].charAt(0)) best = p; });
+        sq.forEach(function (p) { var pt = toks(p.known_as || p.full_name); if (!best && t.length >= 2 && pt.length >= 2 && pt[pt.length - 1] === last && pt[0].charAt(0) === t[0].charAt(0) && (function () { var f = toks(p.full_name)[0] || '', g = t[0]; return f.length < 2 || g.length < 2 || f.indexOf(g.slice(0, 3)) === 0 || g.indexOf(f.slice(0, 3)) === 0; })() && (num === '' || p.jersey_number == null || String(p.jersey_number) === String(num))) best = p; });
         if (best) return best;
         sq.forEach(function (p) { var pt = toks(p.full_name); if (!best && num !== '' && String(p.jersey_number) === String(num) && last && pt.some(function (x) { return x.slice(0, 4) === last.slice(0, 4); })) best = p; });
         return best;
@@ -6486,7 +6486,7 @@ textarea.me-in{min-height:80px;resize:vertical}
         if (best) return best;
         sq.forEach(function (p) { var pt = toks(p.full_name); if (!best && t.length >= 2 && (t.every(function (x) { return pt.indexOf(x) > -1; }) || pt.every(function (x) { return t.indexOf(x) > -1; }))) best = p; });
         if (best) return best;
-        sq.forEach(function (p) { var pt = toks(p.known_as || p.full_name); if (!best && t.length >= 2 && pt.length >= 2 && pt[pt.length - 1] === last && pt[0].charAt(0) === t[0].charAt(0)) best = p; });
+        sq.forEach(function (p) { var pt = toks(p.known_as || p.full_name); if (!best && t.length >= 2 && pt.length >= 2 && pt[pt.length - 1] === last && pt[0].charAt(0) === t[0].charAt(0) && (function () { var f = toks(p.full_name)[0] || '', g = t[0]; return f.length < 2 || g.length < 2 || f.indexOf(g.slice(0, 3)) === 0 || g.indexOf(f.slice(0, 3)) === 0; })() && (num === '' || p.jersey_number == null || String(p.jersey_number) === String(num))) best = p; });
         if (best) return best;
         sq.forEach(function (p) { var pt = toks(p.full_name); if (!best && num !== '' && String(p.jersey_number) === String(num) && last && pt.some(function (x) { return x.slice(0, 4) === last.slice(0, 4); })) best = p; });
         return best;
@@ -6736,7 +6736,7 @@ textarea.me-in{min-height:80px;resize:vertical}
         if (best) return best;
         sq.forEach(function (p) { var pt = toks(p.full_name); if (!best && t.length >= 2 && (t.every(function (x) { return pt.indexOf(x) > -1; }) || pt.every(function (x) { return t.indexOf(x) > -1; }))) best = p; });
         if (best) return best;
-        sq.forEach(function (p) { var pt = toks(p.known_as || p.full_name); if (!best && t.length >= 2 && pt.length >= 2 && pt[pt.length - 1] === last && pt[0].charAt(0) === t[0].charAt(0)) best = p; });
+        sq.forEach(function (p) { var pt = toks(p.known_as || p.full_name); if (!best && t.length >= 2 && pt.length >= 2 && pt[pt.length - 1] === last && pt[0].charAt(0) === t[0].charAt(0) && (function () { var f = toks(p.full_name)[0] || '', g = t[0]; return f.length < 2 || g.length < 2 || f.indexOf(g.slice(0, 3)) === 0 || g.indexOf(f.slice(0, 3)) === 0; })() && (num === '' || p.jersey_number == null || String(p.jersey_number) === String(num))) best = p; });
         if (best) return best;
         sq.forEach(function (p) { var pt = toks(p.full_name); if (!best && num !== '' && String(p.jersey_number) === String(num) && last && pt.some(function (x) { return x.slice(0, 4) === last.slice(0, 4); })) best = p; });
         return best;
