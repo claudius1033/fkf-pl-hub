@@ -7975,5 +7975,39 @@ body:not(.is-admin) .rf-admin{display:none !important}
   #fantasy-panel .fg-pf b{text-align:right;overflow-wrap:anywhere}
 }
 </style>
+<script>
+/* Block 11: tidy SPL line-up text (glued numbers / positions, bullets) before "Check line-up" reads it */
+(function () {
+    var POS = 'Goalkeeper|Keeper|Centre|Center|Right|Left|Defensive|Attacking|Central|Wing|Winger|Second|Striker|Forward|Defender|Midfielder|Mid|Back';
+    var POSL = 'goalkeeper|keeper|centre|center|right|left|defensive|attacking|central|wing|winger|second|striker|forward|defender|midfielder|midfield|mid|back|support';
+    var GLUED = new RegExp('^(.*[a-z])((?:' + POS + ')(?: (?:' + POSL + '))*)$');
+    function cleanPos(p) {
+        var l = p.toLowerCase();
+        var known = ['goalkeeper', 'keeper', 'right back', 'left back', 'centre back', 'center back', 'defender', 'right wing back', 'left wing back', 'wing back', 'defensive midfielder', 'centre mid', 'center mid', 'central midfielder', 'midfielder', 'centre attacking midfielder', 'attacking midfielder', 'right midfielder', 'left midfielder', 'right winger', 'left winger', 'winger', 'striker', 'forward', 'centre forward', 'second striker'];
+        if (known.indexOf(l) > -1) return l;
+        if (/keeper/.test(l)) return 'goalkeeper';
+        if (/back|defender/.test(l)) return 'centre back';
+        if (/mid/.test(l)) return 'midfielder';
+        return 'striker';
+    }
+    function tidy(text) {
+        return String(text).split(/\r?\n/).map(function (line) {
+            var s = line.replace(/^\s*[*•\-]\s+/, '').trim();
+            var m = s.match(/^(\d{1,3})\s*(\D.*)$/);
+            if (!m) return s;
+            var name = m[2].trim(), pos = '', g = name.match(GLUED);
+            if (g) { name = g[1].trim(); pos = cleanPos(g[2]); }
+            return m[1] + ' ' + name + (pos ? ' ' + pos : '');
+        }).join('\n');
+    }
+    window.splTidyLineup = tidy;
+    document.addEventListener('click', function (e) {
+        var b = e.target && e.target.closest ? e.target.closest('[data-pa="check"]') : null;
+        if (!b) return;
+        var host = b.parentNode, ta = host && host.querySelector ? host.querySelector('.pl-ta') : null;
+        if (ta) ta.value = tidy(ta.value);
+    }, true);
+})();
+</script>
 </body>
 </html>
