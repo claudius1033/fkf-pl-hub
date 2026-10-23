@@ -8009,5 +8009,34 @@ body:not(.is-admin) .rf-admin{display:none !important}
     }, true);
 })();
 </script>
+<script>
+/* Block 12: a player listed twice in the same club is shown once (fixes repeated names in the line-up editor) */
+(function () {
+    function dedupe() {
+        try {
+            var m = window.playersByTeam; if (!m) return;
+            Object.keys(m).forEach(function (k) {
+                var a = m[k]; if (!Array.isArray(a)) return;
+                var seen = {};
+                for (var i = a.length - 1; i >= 0; i--) {
+                    var id = a[i] && a[i].id;
+                    if (id == null) continue;
+                    if (seen[id]) a.splice(i, 1); else seen[id] = 1;
+                }
+            });
+            [].forEach.call(document.querySelectorAll('select'), function (s) {
+                var seen = {};
+                [].slice.call(s.options).forEach(function (o) {
+                    if (!o.value) return;
+                    if (seen[o.value]) o.parentNode.removeChild(o); else seen[o.value] = 1;
+                });
+            });
+        } catch (e) { }
+    }
+    dedupe();
+    setInterval(dedupe, 700);
+    document.addEventListener('click', function () { dedupe(); setTimeout(dedupe, 60); setTimeout(dedupe, 400); }, true);
+})();
+</script>
 </body>
 </html>
