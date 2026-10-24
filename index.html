@@ -8148,6 +8148,52 @@ body:not(.is-admin) .rf-admin{display:none !important}
 #fantasy-panel .fg-save{position:static!important;bottom:auto!important;margin:14px 0 6px!important;backdrop-filter:none!important;z-index:auto!important}
 </style>
 <script>
+/* Block 17: Statistics page = Top Scorers, Top Assists, Clean Sheets (Goalkeepers), Yellow Cards, Red Cards, Clean Sheets (Clubs) */
+(function () {
+    function $(i) { return document.getElementById(i); }
+    function nm(p) { return p.known_as || p.full_name || '?'; }
+    async function counts(kind) {
+        var r = await fetch(DB_URL + '/match_events?select=player_id&kind=eq.' + kind, { headers: headers });
+        var rows = r.ok ? await r.json() : [], c = {};
+        rows.forEach(function (x) { if (x.player_id) c[x.player_id] = (c[x.player_id] || 0) + 1; });
+        return c;
+    }
+    function card(id, title, c, byId, empty) {
+        var list = Object.keys(c).map(function (k) { return byId[k] ? { p: byId[k], n: c[k] } : null; }).filter(Boolean)
+            .sort(function (a, b) { return b.n - a.n || nm(a.p).localeCompare(nm(b.p)); }).slice(0, 10);
+        var rank = 0, prev = null;
+        var body = list.length ? list.map(function (x, i) {
+            if (x.n !== prev) { rank = i + 1; prev = x.n; }
+            var n = nm(x.p);
+            return '<div class="stat-row"><span class="stat-rank">' + rank + '</span><div class="player-avatar-frame" style="background-color:' + paletteColor(n) + '">' + avatarHtml(n, x.p.image_url) + '</div><div class="stat-who"><div class="stat-name">' + escapeHtml(n) + '</div><div class="club-name">' + escapeHtml((teamMap[x.p.team_id] || {}).name || '') + '</div></div><span class="stat-val">' + x.n + '</span></div>';
+        }).join('') : '<div class="empty-state">' + empty + '</div>';
+        return '<div class="card static" id="' + id + '"><div class="stat-title">' + title + '</div>' + body + '</div>';
+    }
+    async function build() {
+        var sc = $('stats-container'); if (!sc) return;
+        var kids = [].slice.call(sc.children).filter(function (e) { return !/^(yc|rc)-card$/.test(e.id); });
+        if (kids.length < 3) return;
+        var pr = await fetch(DB_URL + '/players?select=id,full_name,known_as,team_id,image_url', { headers: headers });
+        var byId = {}; (pr.ok ? await pr.json() : []).forEach(function (p) { byId[p.id] = p; });
+        var y = await counts('yellow'), r = await counts('red');
+        ['yc-card', 'rc-card'].forEach(function (i) { var o = $(i); if (o) o.remove(); });
+        var gk = $('gk-cs-card');
+        var club = kids.filter(function (e) { return e !== gk; })[2];
+        var first = kids.filter(function (e) { return e !== gk; }).slice(0, 2);
+        sc.insertAdjacentHTML('beforeend', card('yc-card', 'Yellow Cards', y, byId, 'No yellow cards recorded yet.'));
+        sc.insertAdjacentHTML('beforeend', card('rc-card', 'Red Cards', r, byId, 'No red cards recorded yet.'));
+        var order = first.concat([gk, $('yc-card'), $('rc-card'), club]).filter(Boolean);
+        order.forEach(function (e) { sc.appendChild(e); });
+    }
+    var prev = window.loadStats;
+    if (typeof prev === 'function') window.loadStats = async function () {
+        var r = await prev.apply(this, arguments);
+        try { await build(); } catch (e) { console.error('stats cards', e); }
+        return r;
+    };
+})();
+</script>
+<script>
 /* Block 18: Statistics also uses the SportPesa League season totals (goals, assists, yellow, red): each player shows the higher of your own count and the league's */
 (function () {
     function $(i) { return document.getElementById(i); }
