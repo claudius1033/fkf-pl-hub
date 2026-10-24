@@ -8147,5 +8147,45 @@ body:not(.is-admin) .rf-admin{display:none !important}
 /* Block 16: the Save team bar sits below the pitch on every screen size instead of floating over it */
 #fantasy-panel .fg-save{position:static!important;bottom:auto!important;margin:14px 0 6px!important;backdrop-filter:none!important;z-index:auto!important}
 </style>
+<script>
+/* Block 18: Statistics also uses the SportPesa League season totals (goals, assists, yellow, red): each player shows the higher of your own count and the league's */
+(function () {
+    function $(i) { return document.getElementById(i); }
+    function nm(p) { return p.known_as || p.full_name || '?'; }
+    async function J(path) { var r = await fetch(DB_URL + path, { headers: headers }); return r.ok ? r.json() : null; }
+    function card(id, title, c, byId, empty) {
+        var list = Object.keys(c).filter(function (k) { return byId[k] && c[k] > 0; }).map(function (k) { return { p: byId[k], n: c[k] }; })
+            .sort(function (a, b) { return b.n - a.n || nm(a.p).localeCompare(nm(b.p)); }).slice(0, 10);
+        var rank = 0, prev = null;
+        var body = list.length ? list.map(function (x, i) {
+            if (x.n !== prev) { rank = i + 1; prev = x.n; }
+            var n = nm(x.p);
+            return '<div class="stat-row"><span class="stat-rank">' + rank + '</span><div class="player-avatar-frame" style="background-color:' + paletteColor(n) + '">' + avatarHtml(n, x.p.image_url) + '</div><div class="stat-who"><div class="stat-name">' + escapeHtml(n) + '</div><div class="club-name">' + escapeHtml((teamMap[x.p.team_id] || {}).name || '') + '</div></div><span class="stat-val">' + x.n + '</span></div>';
+        }).join('') : '<div class="empty-state">' + empty + '</div>';
+        return '<div class="card static" id="' + id + '"><div class="stat-title">' + title + '</div>' + body + '</div>';
+    }
+    function tally(rows, f) { var c = {}; (rows || []).forEach(function (r) { var id = r[f]; if (id) c[id] = (c[id] || 0) + 1; }); return c; }
+    function merge(own, spl, f) { var o = Object.assign({}, own); (spl || []).forEach(function (s) { if (s[f] > (o[s.player_id] || 0)) o[s.player_id] = s[f]; }); return o; }
+    async function build() {
+        var sc = $('stats-container'), yc = $('yc-card'), rc = $('rc-card'); if (!sc || !yc || !rc) return;
+        var spl = await J('/spl_player_stats?select=*'); if (!spl || !spl.length) return;
+        var r = await Promise.all([J('/goals?select=player_id,assist_player_id'), J('/players?select=id,full_name,known_as,team_id,image_url'), J('/match_events?select=player_id&kind=eq.yellow'), J('/match_events?select=player_id&kind=eq.red')]);
+        var byId = {}; (r[1] || []).forEach(function (p) { byId[p.id] = p; });
+        var kids = [].slice.call(sc.children).filter(function (e) { return e !== yc && e !== rc && e.id !== 'gk-cs-card'; });
+        var sCard = kids[0], aCard = kids[1]; if (!sCard || !aCard) return;
+        sCard.id = 'sc-card'; aCard.id = 'as-card';
+        sCard.outerHTML = card('sc-card', 'Top Scorers', merge(tally(r[0], 'player_id'), spl, 'goals'), byId, 'No goals recorded yet.');
+        $('as-card').outerHTML = card('as-card', 'Top Assists', merge(tally(r[0], 'assist_player_id'), spl, 'assists'), byId, 'No assists recorded yet.');
+        yc.outerHTML = card('yc-card', 'Yellow Cards', merge(tally(r[2], 'player_id'), spl, 'yellow'), byId, 'No yellow cards recorded yet.');
+        rc.outerHTML = card('rc-card', 'Red Cards', merge(tally(r[3], 'player_id'), spl, 'red'), byId, 'No red cards recorded yet.');
+    }
+    var prev = window.loadStats;
+    if (typeof prev === 'function') window.loadStats = async function () {
+        var r = await prev.apply(this, arguments);
+        try { await build(); } catch (e) { console.error('spl totals', e); }
+        return r;
+    };
+})();
+</script>
 </body>
 </html>
