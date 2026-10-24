@@ -8038,5 +8038,107 @@ body:not(.is-admin) .rf-admin{display:none !important}
     document.addEventListener('click', function () { dedupe(); setTimeout(dedupe, 60); setTimeout(dedupe, 400); }, true);
 })();
 </script>
+<style>
+/* Block 13: easier phone use: bigger buttons, Back arrows, Save bar no longer floats over the pitch */
+.fkf-back{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px 0 12px;margin:0 0 10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.28);border-radius:999px;color:#fff;font-family:inherit;font-weight:800;font-size:.95rem;cursor:pointer;position:relative;z-index:25}
+.fkf-back:active{background:rgba(255,199,44,.25)}
+.fkf-back b{font-size:1.25rem;line-height:1}
+.pk-top .fkf-back{margin:0 8px 0 0;min-height:44px}
+.pk-top #pk-title{flex:1}
+.close-btn,.pk-x0,.gp-x{min-width:44px;min-height:44px}
+#m-bar .fkf-back{margin:0;min-height:38px;padding:0 12px 0 8px;font-size:.85rem}
+@media (max-width:820px){
+  #fantasy-panel .fg-save{position:static!important;margin:12px 0 4px!important;backdrop-filter:none}
+  .pk-cols,.pk-r{grid-template-columns:34px 1fr 62px 30px 54px!important;gap:6px!important}
+  .pk-add{width:46px!important;height:46px!important;font-size:1.5rem!important;position:relative;justify-self:center;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+  .pk-add::after{content:"";position:absolute;inset:-8px -6px}
+  .pk-r{padding-top:10px!important;padding-bottom:10px!important}
+  #pk .dr{width:100%!important}
+  #fantasy-panel .fz-empty{min-height:58px}
+  #fantasy-panel .fz-empty .dot{width:44px!important;height:44px!important}
+}
+</style>
+<script>
+(function () {
+    if (window.__fkfUx) return; window.__fkfUx = true;
+    function mkBack(label, fn) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'fkf-back'; b.setAttribute('data-fkf-back', '1');
+        b.innerHTML = '<b>&#8592;</b><span>' + label + '</span>';
+        b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); fn(); });
+        return b;
+    }
+    /* 1. a Back button inside every pop-up that has a close (x) button */
+    function addBacks() {
+        document.querySelectorAll('.modal-screen .close-btn, .result-modal-frame .close-btn, .gp .gp-x').forEach(function (x) {
+            var host = x.parentNode;
+            if (!host || host.querySelector(':scope > [data-fkf-back]')) return;
+            host.insertBefore(mkBack('Back', function () { x.click(); }), host.firstChild);
+        });
+        var top = document.querySelector('#pk .pk-top');
+        if (top && !top.querySelector('[data-fkf-back]')) {
+            top.insertBefore(mkBack('Back', function () { var c = document.getElementById('pk-close'); if (c) c.click(); }), top.firstChild);
+        }
+    }
+    /* 2. page Back button in the top bar: goes to the page you came from, or the dashboard */
+    var hist = [], cur = null, going = false;
+    function tabBtn(key) {
+        var f = null;
+        document.querySelectorAll('.nav-links button').forEach(function (b) { if ((b.getAttribute('onclick') || '').indexOf("'" + key + "'") !== -1) f = b; });
+        return f;
+    }
+    var prev = window.switchTab;
+    if (typeof prev === 'function') {
+        window.switchTab = function (t, e) {
+            if (!going && cur && cur !== t) hist.push(cur);
+            cur = t;
+            var r = prev.apply(this, arguments);
+            showBar();
+            return r;
+        };
+    }
+    function goBack() {
+        var p = hist.pop();
+        if (p) { going = true; try { window.switchTab(p, { currentTarget: tabBtn(p) }); } finally { going = false; } }
+        else { document.body.classList.remove('in-page', 'nav-open'); cur = null; }
+        window.scrollTo(0, 0);
+        showBar();
+    }
+    function showBar() {
+        var bar = document.getElementById('m-bar'); if (!bar) return;
+        var b = bar.querySelector('[data-fkf-pageback]');
+        if (!b) {
+            b = mkBack('Back', goBack); b.setAttribute('data-fkf-pageback', '1');
+            bar.insertBefore(b, bar.firstChild);
+        }
+        b.style.display = document.body.classList.contains('in-page') ? '' : 'none';
+    }
+    /* 3. the phone's own Back button closes the player picker instead of leaving the site */
+    var pkOpen = false;
+    function watchPk() {
+        var pk = document.getElementById('pk'); if (!pk) return;
+        var on = pk.classList.contains('on');
+        if (on && !pkOpen) { try { history.pushState({ fkfPk: 1 }, ''); } catch (e) { } }
+        if (!on && pkOpen && history.state && history.state.fkfPk) { try { history.back(); } catch (e) { } }
+        pkOpen = on;
+    }
+    window.addEventListener('popstate', function () {
+        var pk = document.getElementById('pk');
+        if (pk && pk.classList.contains('on')) { pkOpen = false; var c = document.getElementById('pk-close'); if (c) c.click(); }
+    });
+    function tick() { addBacks(); watchPk(); showBar(); }
+    new MutationObserver(tick).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    tick(); setInterval(tick, 800);
+})();
+</script>
+<style>
+/* Block 14: on laptops the left menu stays visible on every page (phones keep the pop-out menu) */
+@media (min-width:1000px){
+  body.in-page{flex-direction:row!important;height:100vh!important;overflow:hidden!important}
+  body.in-page #m-bar,body.in-page #m-back{display:none!important}
+  body.in-page nav{position:static!important;transform:none!important;height:100%!important;width:290px!important;box-shadow:none!important;z-index:auto!important;transition:none!important}
+  body.in-page main{flex:1 1 0!important;min-height:0!important;min-width:0}
+}
+</style>
 </body>
 </html>
