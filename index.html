@@ -8232,6 +8232,283 @@ body:not(.is-admin) .rf-admin{display:none !important}
         return r;
     };
 })();
+</script><style>
+/* Block 20: Fantasy like FPL. Segment pages, player pop-up, saved state, comfortable sizes */
+#fantasy-panel .fx-strip{display:none!important}
+#fantasy-panel .fz-tabs{display:none!important}
+
+/* ---- segment bar ---- */
+#fkf-seg{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px;margin:0 0 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#fkf-seg::-webkit-scrollbar{display:none}
+#fkf-seg button{flex:none;min-height:42px;padding:0 16px;border-radius:999px;border:1px solid #2a3042;background:#171A24;color:#C3C8D6;font-family:inherit;font-weight:700;font-size:.9rem;white-space:nowrap;cursor:pointer}
+#fkf-seg button:hover{color:#fff;border-color:#3a4258}
+#fkf-seg button.on{background:#E31B23;border-color:#E31B23;color:#fff}
+
+/* ---- what each segment shows ---- */
+#fantasy-panel[data-seg="pick"] .fx-main>:not(#fg-gate):not(#fx-head):not(#fkf-chips):not(#fz-bar):not(.fz-cols):not(.fg-save){display:none!important}
+#fantasy-panel[data-seg="pick"] .fx-aside>:not(#fx-team):not(#fx-pts):not(#fx-leagues){display:none!important}
+#fantasy-panel[data-seg="pick"] .fz-side{display:none!important}
+#fantasy-panel[data-seg="pick"] .fz-cols{grid-template-columns:minmax(0,1fr)!important;max-width:680px;margin-left:auto;margin-right:auto;width:100%}
+
+#fantasy-panel[data-seg="market"] .fx-main>:not(#fg-gate):not(#fz-bar):not(.fz-cols):not(.fg-save){display:none!important}
+#fantasy-panel[data-seg="market"] .fx-aside{display:none!important}
+
+#fantasy-panel[data-seg="points"] .fx-main>:not(#fg-gate){display:none!important}
+#fantasy-panel[data-seg="points"] .fx-aside>:not(#fx-team):not(#fg-prof):not(#fx-pts):not(#fx-fin){display:none!important}
+
+#fantasy-panel[data-seg="leagues"] .fx-main>:not(#fg-gate){display:none!important}
+#fantasy-panel[data-seg="leagues"] .fx-aside>:not(#fx-team):not(#fx-leagues){display:none!important}
+
+#fantasy-panel[data-seg="fix"] .fx-main>:not(#fg-gate):not(#fx-fix){display:none!important}
+#fantasy-panel[data-seg="fix"] .fx-aside{display:none!important}
+
+#fantasy-panel[data-seg="news"] .fx-main>:not(#fg-gate):not(#fx-news):not(#fkf-home){display:none!important}
+#fantasy-panel[data-seg="news"] .fx-aside{display:none!important}
+
+#fantasy-panel[data-seg="market"] .fx-grid,#fantasy-panel[data-seg="points"] .fx-grid,#fantasy-panel[data-seg="leagues"] .fx-grid,#fantasy-panel[data-seg="fix"] .fx-grid,#fantasy-panel[data-seg="news"] .fx-grid{grid-template-columns:minmax(0,1fr)!important}
+#fantasy-panel[data-seg="points"] .fx-aside,#fantasy-panel[data-seg="leagues"] .fx-aside{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;align-items:start}
+#fantasy-panel.fx-guest[data-seg="points"] .fx-aside,#fantasy-panel.fx-guest[data-seg="leagues"] .fx-aside{display:none!important}
+@media (max-width:1100px){#fantasy-panel[data-seg="pick"] .fx-aside{display:none!important}}
+@media (max-width:820px){#fantasy-panel[data-seg="market"] .fz-cols>div:first-child{display:none!important}}
+
+/* Pick Team: pitch first, chips underneath */
+#fantasy-panel[data-seg="pick"] .fx-main{display:flex;flex-direction:column}
+#fantasy-panel[data-seg="pick"] .fx-main>#fx-head{order:1}
+#fantasy-panel[data-seg="pick"] .fx-main>#fz-bar{order:2}
+#fantasy-panel[data-seg="pick"] .fx-main>.fz-cols{order:3}
+#fantasy-panel[data-seg="pick"] .fx-main>.fg-save{order:4}
+#fantasy-panel[data-seg="pick"] .fx-main>#fkf-chips{order:5;margin-top:14px}
+
+/* Transfers list: roomy rows on phones */
+@media (max-width:820px){
+  #fantasy-panel .fz-list{max-height:none!important}
+  #fantasy-panel .fz-lrow{display:grid!important;grid-template-columns:46px minmax(0,1fr) auto auto;column-gap:10px;row-gap:0;align-items:center;padding:10px 0!important}
+  #fantasy-panel .fz-lav{grid-row:1/3;width:46px!important;height:46px!important}
+  #fantasy-panel .fz-lwho{grid-row:1/3;grid-column:2}
+  #fantasy-panel .fz-ln{font-size:1rem}
+  #fantasy-panel .fz-lc{font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #fantasy-panel .fz-lp{grid-column:3;grid-row:1;min-width:0!important;text-align:right}
+  #fantasy-panel .fz-lpr{grid-column:3;grid-row:2;min-width:0!important;font-size:.78rem;text-align:right}
+  #fantasy-panel .fz-ladd{grid-column:4;grid-row:1/3;min-width:72px;min-height:42px}
+}
+
+/* ---- comfortable sizes on phones ---- */
+@media (max-width:480px){
+  #fantasy-panel .fz-card .fz-photo{width:40px!important;height:40px!important}
+  #fantasy-panel .fz-card .fz-pn{font-size:.68rem!important}
+  #fantasy-panel .fz-card .fz-pp{font-size:.6rem!important}
+  #fantasy-panel .fz-empty .dot{width:42px!important;height:38px!important}
+  #fantasy-panel .fz-bar{gap:8px}
+  #fantasy-panel .fz-stat{padding:10px 12px;min-width:0;flex:1}
+  #fantasy-panel .fz-stat b{font-size:1.05rem}
+  #fantasy-panel .fz-stat span{font-size:.68rem}
+  #fantasy-panel .fx-card{font-size:.95rem}
+  #fantasy-panel .fx-row{font-size:.92rem;padding:9px 0}
+  #fantasy-panel .fz-lrow{padding:10px 8px;gap:10px}
+  #fantasy-panel .fz-ln{font-size:.95rem}
+  #fantasy-panel .fz-lc{font-size:.78rem}
+  #fantasy-panel .fz-lav{width:44px;height:44px}
+  #fantasy-panel .fz-ladd{min-height:40px;min-width:62px}
+  #fantasy-panel .fz-filters select,#fantasy-panel .fz-filters input{min-height:42px;font-size:.9rem}
+  #fantasy-panel .fg-save .fz-primary{min-height:50px;font-size:1rem}
+}
+
+/* ---- save button once the team is saved ---- */
+#fantasy-panel .fg-save .fz-primary.is-saved{background:#0b7a3e!important;border-color:#0b7a3e!important;color:#fff;opacity:.9;cursor:default}
+
+/* ---- swap helper bar ---- */
+#fkf-swapbar{position:fixed;left:10px;right:10px;bottom:12px;z-index:8000;display:none;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:#10131b;border:1px solid #FFC72C;box-shadow:0 10px 30px rgba(0,0,0,.6);color:#fff;font-weight:700;font-size:.9rem;max-width:520px;margin:0 auto}
+#fkf-swapbar.on{display:flex}
+#fkf-swapbar span{flex:1}
+#fkf-swapbar button{min-height:42px;padding:0 16px;border-radius:10px;border:1px solid #3a4258;background:#1c2030;color:#fff;font-family:inherit;font-weight:800;cursor:pointer}
+
+/* ---- player pop-up ---- */
+#fkf-pm{position:fixed;inset:0;z-index:9000;display:none;align-items:flex-end;justify-content:center;background:rgba(5,6,9,.72)}
+#fkf-pm.on{display:flex}
+#fkf-pm .pm-sheet{width:100%;max-width:520px;max-height:92vh;display:flex;flex-direction:column;background:#141721;border:1px solid #232735;border-radius:20px 20px 0 0;overflow:hidden;box-shadow:0 -10px 40px rgba(0,0,0,.6)}
+@media (min-width:700px){#fkf-pm{align-items:center}#fkf-pm .pm-sheet{border-radius:20px;max-height:88vh}}
+#fkf-pm .pm-top{position:relative;flex:none;height:60px;display:flex;align-items:center;padding:0 16px 0 68px;border-bottom:1px solid #232735;font-weight:800;font-size:1rem;color:#fff}
+#fkf-pm .pm-x{position:absolute;left:10px;top:8px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:#fff;font-size:1.5rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#fkf-pm .pm-body{flex:1;overflow-y:auto;padding:14px 16px 10px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#fkf-pm .pm-body .fz-detail{grid-template-columns:1fr!important;gap:14px}
+#fkf-pm .pm-body .fz-pcard{padding:16px 14px}
+#fkf-pm .pm-body .fz-arcs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+#fkf-pm .pm-body .fz-note{display:none}
+#fkf-pm .pm-foot{flex:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid #232735;background:#141721}
+#fkf-pm .pm-foot button{min-height:50px;border-radius:12px;border:1px solid #2e3446;background:#1c2030;color:#fff;font-family:inherit;font-weight:800;font-size:.85rem;text-transform:uppercase;letter-spacing:.2px;padding:0 10px;cursor:pointer}
+#fkf-pm .pm-foot button.go{background:#10B981;border-color:#10B981;color:#04140d}
+#fkf-pm .pm-foot button.bad{color:#ff8a8a;border-color:rgba(227,27,35,.5)}
+#fkf-pm .pm-foot button:disabled{opacity:.45;cursor:default}
+#fkf-pm[data-seg="market"] .pm-foot button:not(.bad):not(.go){display:none}
+#fkf-pm[data-seg="market"] .pm-foot button.go,#fkf-pm[data-seg="market"] .pm-foot button.bad{grid-column:1/-1}
+</style>
+
+<script>
+(function () {
+    if (window.__fkfB20) return; window.__fkfB20 = true;
+    var fp = document.getElementById('fantasy-panel');
+    if (!fp || !document.getElementById('fx-main')) return;
+    function $(id) { return document.getElementById(id); }
+    function L(a, b) { return document.documentElement.lang === 'sw' ? b : a; }
+    function tabBtn(k) {
+        var f = null;
+        document.querySelectorAll('.nav-links button').forEach(function (b) { if ((b.getAttribute('onclick') || '').indexOf("'" + k + "'") !== -1) f = b; });
+        return f;
+    }
+
+    /* ================= segments ================= */
+    var SEGS = [['pick', 'Pick Team', 'Chagua kikosi'], ['market', 'Transfers', 'Uhamisho'], ['points', 'Points', 'Pointi'], ['leagues', 'Leagues', 'Ligi'],
+                ['fix', 'Fixtures', 'Ratiba'], ['news', 'Team news', 'Habari za timu'], ['stats', 'Statistics', 'Takwimu']];
+    var seg = document.createElement('div'); seg.id = 'fkf-seg';
+    var anchor = fp.querySelector('.fx-strip') || $('banner-fantasy') || fp.firstElementChild;
+    anchor.insertAdjacentElement('afterend', seg);
+    function labels() {
+        seg.innerHTML = SEGS.map(function (s) { return '<button type="button" data-s="' + s[0] + '">' + L(s[1], s[2]) + '</button>'; }).join('');
+        mark();
+    }
+    function mark() {
+        var cur = fp.dataset.seg || 'pick';
+        seg.querySelectorAll('button').forEach(function (b) { b.classList.toggle('on', b.dataset.s === cur); });
+    }
+    function top() {
+        var m = document.querySelector('main'); if (m) m.scrollTop = 0;
+        try { window.scrollTo(0, 0); } catch (e) { }
+    }
+    function go(s, keepScroll) {
+        if (s === 'stats') { if (window.switchTab) window.switchTab('statistics', { currentTarget: tabBtn('statistics') }); return; }
+        fp.dataset.seg = s; mark();
+        var on = seg.querySelector('button.on'); if (on && on.scrollIntoView) { try { on.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) { } }
+        if (s === 'market' && window.fzTab) window.fzTab('market');
+        if (!keepScroll) top();
+    }
+    seg.addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) go(b.dataset.s); });
+    fp.dataset.seg = 'pick'; labels();
+    new MutationObserver(labels).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+
+    /* an empty "+" slot, or anything that asks for the market, goes to the Transfers page */
+    var oMarket = window.fzMarket;
+    if (oMarket) window.fzMarket = function () {
+        oMarket.apply(this, arguments);
+        if (fp.dataset.seg !== 'market') go('market');
+    };
+
+    /* ================= player pop-up ================= */
+    var pm = document.createElement('div'); pm.id = 'fkf-pm';
+    pm.innerHTML = '<div class="pm-sheet" role="dialog" aria-modal="true"><div class="pm-top"><button type="button" class="pm-x" aria-label="Back">←</button><span class="pm-t"></span></div><div class="pm-body"></div><div class="pm-foot"></div></div>';
+    document.body.appendChild(pm);
+    var pmBody = pm.querySelector('.pm-body'), pmFoot = pm.querySelector('.pm-foot'), pmTitle = pm.querySelector('.pm-t');
+    var side = $('fz-side-body'), isOpen = false, pushed = false, ignorePop = false;
+
+    function sync() {
+        if (!isOpen) return;
+        var d = side.querySelector('.fz-detail');
+        if (!d) { close(); return; }
+        var tmp = document.createElement('div'); tmp.innerHTML = side.innerHTML;
+        var act = tmp.querySelector('.fz-actions');
+        pmFoot.innerHTML = act ? act.innerHTML : '';
+        if (act) act.remove();
+        var nm = tmp.querySelector('.fz-pname');
+        pmTitle.textContent = nm ? nm.textContent : '';
+        pmBody.innerHTML = tmp.innerHTML;
+    }
+    function open() {
+        if (!side.querySelector('.fz-detail')) return;
+        pm.dataset.seg = fp.dataset.seg || 'pick';
+        isOpen = true; sync();
+        if (!isOpen) return;
+        pm.classList.add('on'); pmBody.scrollTop = 0;
+        if (!pushed) { try { history.pushState({ fkfPm: 1 }, ''); pushed = true; } catch (e) { } }
+    }
+    function close(fromPop) {
+        if (!isOpen) return;
+        isOpen = false; pm.classList.remove('on');
+        if (pushed) { pushed = false; if (!fromPop) { ignorePop = true; try { history.back(); } catch (e) { ignorePop = false; } } }
+        if (fp.dataset.seg === 'market' && window.fzTab) window.fzTab('market');
+        var pk = $('pk'), pq = $('pk-q');
+        if (pk && pk.classList.contains('on') && pq) pq.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    window.addEventListener('popstate', function () {
+        if (ignorePop) { ignorePop = false; return; }
+        if (isOpen) close(true);
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && isOpen) close(); });
+    pm.addEventListener('click', function (e) { if (e.target === pm || e.target.closest('.pm-x')) close(); });
+    pmFoot.addEventListener('click', function (e) {
+        var b = e.target.closest('button'); if (!b || b.disabled) return;
+        var oc = b.getAttribute('onclick') || '';
+        if (/fzCap|fzDrop|fzAdd|fzSwapStart/.test(oc)) setTimeout(function () { close(); }, 0);
+    });
+    if (side) new MutationObserver(sync).observe(side, { childList: true, subtree: true });
+
+    var oPick = window.fzPick;
+    if (oPick) window.fzPick = function () {
+        var swapping = !!document.querySelector('#fz-pitch .fz-card.from,#fz-bench .fz-card.from');
+        var r = oPick.apply(this, arguments);
+        if (!swapping) open();
+        return r;
+    };
+    var oView = window.fzView;
+    if (oView) window.fzView = function () { var r = oView.apply(this, arguments); open(); return r; };
+
+    /* players in the full-screen picker open the same pop-up */
+    document.addEventListener('click', function (e) {
+        var row = e.target.closest ? e.target.closest('#pk .pk-r') : null;
+        if (!row || e.target.closest('[data-add]') || e.target.closest('.pk-x')) return;
+        var id = Number(row.dataset.id); if (!id || !window.fzView) return;
+        e.stopPropagation(); e.preventDefault();
+        window.fzView(id);
+    }, true);
+
+    /* ================= swap helper ================= */
+    var sb = document.createElement('div'); sb.id = 'fkf-swapbar';
+    sb.innerHTML = '<span></span><button type="button">' + L('Cancel', 'Ghairi') + '</button>';
+    document.body.appendChild(sb);
+    sb.querySelector('span').textContent = L('Tap the highlighted player to swap with.', 'Gusa mchezaji aliyeangaziwa ili kubadilishana.');
+    sb.querySelector('button').addEventListener('click', function () { if (window.fzSwapCancel) window.fzSwapCancel(); });
+    function paintSwap() { sb.classList.toggle('on', !!document.querySelector('#fz-pitch .fz-card.from,#fz-bench .fz-card.from')); }
+
+    /* ================= saved state ================= */
+    var base = null;
+    function sig() {
+        var ids = [], cap = '';
+        document.querySelectorAll('#fz-pitch .fz-card,#fz-bench .fz-card').forEach(function (c) {
+            var m = (c.getAttribute('onclick') || '').match(/fzPick\((\d+)\)/); if (!m) return;
+            ids.push(m[1]); if (c.querySelector('.fz-cap')) cap = m[1];
+        });
+        return ids.slice().sort().join(',') + '|' + cap;
+    }
+    function paintSave() {
+        var b = document.querySelector('.fg-save .fz-primary'); if (!b) return;
+        var saved = base !== null && base === sig();
+        var t = saved ? L('Team saved ✓', 'Timu imehifadhiwa ✓') : (base !== null ? L('Save changes', 'Hifadhi mabadiliko') : L('Save team', 'Hifadhi timu'));
+        if (b.textContent !== t) b.textContent = t;
+        b.classList.toggle('is-saved', saved);
+    }
+    var oLoad = window.fzLoad;
+    if (oLoad) window.fzLoad = async function () {
+        var r = await oLoad.apply(this, arguments);
+        setTimeout(function () { if (document.querySelector('#fz-who b')) base = sig(); paintSave(); }, 60);
+        return r;
+    };
+    var oSave = window.fzSave;
+    if (oSave) window.fzSave = async function () {
+        var r = await oSave.apply(this, arguments);
+        setTimeout(function () {
+            var m = $('fz-msg');
+            if (m && m.classList.contains('ok') && /saved/i.test(m.textContent)) base = sig();
+            paintSave();
+        }, 120);
+        return r;
+    };
+    var oClear = window.fzClear;
+    if (oClear) window.fzClear = function () { base = null; var r = oClear.apply(this, arguments); paintSave(); return r; };
+
+    var q = false;
+    function later() { if (q) return; q = true; requestAnimationFrame(function () { q = false; paintSwap(); paintSave(); }); }
+    ['fz-pitch', 'fz-bench'].forEach(function (id) { var e = $(id); if (e) new MutationObserver(later).observe(e, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] }); });
+    var sv = document.querySelector('.fg-save'); if (sv) new MutationObserver(later).observe(sv, { childList: true, subtree: true, characterData: true });
+    later();
+})();
 </script>
 </body>
 </html>
