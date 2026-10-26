@@ -8509,8 +8509,7 @@ body:not(.is-admin) .rf-admin{display:none !important}
     var sv = document.querySelector('.fg-save'); if (sv) new MutationObserver(later).observe(sv, { childList: true, subtree: true, characterData: true });
     later();
 })();
-</script>
-<style>
+</script><style>
 /* Block 21: stable field, FPL-style spacing, Points page with your team on the pitch, Statistics inside Fantasy */
 
 /* ---- one stable field layer (no 3D transform, no clip-path) so cards and field always scroll together ---- */
@@ -8633,75 +8632,110 @@ body:not(.is-admin) .rf-admin{display:none !important}
     function short(p) { var n = nm(p).trim().split(/\s+/); return n.length > 1 ? n[0].charAt(0) + '. ' + n.slice(1).join(' ') : n[0]; }
     var GOAL = { GK: 6, DEF: 6, MID: 5, FWD: 4 }, PRICE = { GK: 5, DEF: 5.5, MID: 7, FWD: 8 };
     function price(p) { return Number(p.price) || PRICE[p.position] || 5; }
+    function played(m) { return m.status === 'completed' && m.home_score !== null && m.away_score !== null && m.home_score !== undefined && m.away_score !== undefined; }
 
     var ptsView = document.createElement('div'); ptsView.id = 'fkf-pts-view';
     var stView = document.createElement('div'); stView.id = 'fkf-st-view';
     main.appendChild(ptsView); main.appendChild(stView);
 
-    /* ================= data and scoring ================= */
+    /* ================= gameweeks (same grouping the leaderboard uses) ================= */
+    function gwTable(ms) {
+        var s = ms.filter(function (m) { return !isNaN(new Date(m.match_datetime)); }).sort(function (a, b) { return new Date(a.match_datetime) - new Date(b.match_datetime); });
+        var all = s.length && s.every(function (m) { return m.gameweek !== null && m.gameweek !== undefined && m.gameweek !== ''; });
+        var by = {}, n = 0, prev = null;
+        s.forEach(function (m) {
+            var t = new Date(m.match_datetime).getTime(), g;
+            if (all) g = Number(m.gameweek); else { if (prev === null || t - prev > 60 * 3600000) n++; g = n; prev = t; }
+            (by[g] = by[g] || []).push(m);
+        });
+        return Object.keys(by).map(Number).sort(function (a, b) { return a - b; }).map(function (g) { return { n: g, ms: by[g] }; });
+    }
+
+    /* ================= Fantasy Premier League scoring =================
+       Playing: 1 point (under 60 min) or 2 points (60+). Goals GK/DEF 6, MID 5, FWD 4. Assist 3.
+       Clean sheet (60+ min): GK/DEF 4, MID 1. GK/DEF lose 1 point for every 2 goals conceded (60+ min).
+       Yellow card -1, red card -3. Captain x2 (triple captain x3). Not counted yet: saves, penalties, own goals, bonus points. */
+    function calc(G, goals, lineups, evs, plist) {
+        var byTeam = {}, gBy = {}, aBy = {}, luBy = {}, hasLu = {}, evBy = {};
+        plist.forEach(function (p) { if (GOAL[p.position]) (byTeam[p.team_id] = byTeam[p.team_id] || []).push(p); });
+        goals.forEach(function (x) {
+            if (x.player_id) { var k = x.match_id + ':' + x.player_id; gBy[k] = (gBy[k] || 0) + 1; }
+            if (x.assist_player_id) { var k2 = x.match_id + ':' + x.assist_player_id; aBy[k2] = (aBy[k2] || 0) + 1; }
+        });
+        lineups.forEach(function (l) { hasLu[l.match_id] = true; if (l.role === 'start') luBy[l.match_id + ':' + l.player_id] = true; });
+        evs.forEach(function (e) { (evBy[e.match_id] = evBy[e.match_id] || []).push(e); });
+        var pp = {}, det = {};
+        G.forEach(function (g) {
+            var o = pp[g.n] = {}, dg = det[g.n] = {};
+            g.ms.forEach(function (m) {
+                if (!played(m)) return;
+                var ev = evBy[m.id] || [];
+                [[m.home_team_id, m.away_score, true], [m.away_team_id, m.home_score, false]].forEach(function (side) {
+                    var conceded = Number(side[1]);
+                    (byTeam[side[0]] || []).forEach(function (p) {
+                        var k = m.id + ':' + p.id, gl = gBy[k] || 0, as = aBy[k] || 0, pos = p.position;
+                        var start = hasLu[m.id] ? !!luBy[k] : !p.is_substitute;
+                        var from = start ? 0 : null, to = 90, yel = 0, red = 0;
+                        ev.forEach(function (e) {
+                            var min = e.minute === null || e.minute === undefined ? null : Number(e.minute);
+                            if (e.kind === 'sub') {
+                                if (e.player_id === p.id) from = min === null ? 70 : min;
+                                if (e.player2_id === p.id) to = Math.min(to, min === null ? 70 : min);
+                            } else if (e.kind === 'red' && e.player_id === p.id) { red++; to = Math.min(to, min === null ? 80 : min); }
+                            else if (e.kind === 'yellow' && e.player_id === p.id) yel++;
+                        });
+                        if (from === null && (gl || as)) from = 60;
+                        var mins = from === null ? 0 : Math.max(0, to - from), it = [];
+                        if (mins > 0) it.push([mins >= 60 ? L('Played 60+ minutes', 'Alicheza dakika 60+') : L('Played under 60 minutes', 'Alicheza chini ya dakika 60'), mins >= 60 ? 2 : 1]);
+                        if (gl) it.push([L('Goals', 'Mabao') + ' ×' + gl, gl * GOAL[pos]]);
+                        if (as) it.push([L('Assists', 'Pasi') + ' ×' + as, as * 3]);
+                        if (mins >= 60 && conceded === 0 && pos !== 'FWD') it.push([L('Clean sheet', 'Hakuna bao'), pos === 'MID' ? 1 : 4]);
+                        if (mins >= 60 && conceded >= 2 && (pos === 'GK' || pos === 'DEF')) it.push([L('Goals conceded', 'Mabao yaliyofungwa') + ' (' + conceded + ')', -Math.floor(conceded / 2)]);
+                        if (yel) it.push([L('Yellow card', 'Kadi ya njano') + (yel > 1 ? ' ×' + yel : ''), -yel]);
+                        if (red) it.push([L('Red card', 'Kadi nyekundu'), -3]);
+                        if (!it.length) return;
+                        var sum = it.reduce(function (a, i) { return a + i[1]; }, 0);
+                        o[p.id] = (o[p.id] || 0) + sum;
+                        (dg[p.id] = dg[p.id] || []).push({ m: m, items: it, pts: sum, home: side[2] });
+                    });
+                });
+            });
+        });
+        return { pp: pp, det: det };
+    }
+
+    /* ================= data ================= */
     var D = null, T = 0, loading = null;
     function J(path) { return fetch(DB_URL + path, { headers: headers }).then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }); }
     function load(force) {
         if (D && !force && Date.now() - T < 20000) return Promise.resolve(D);
         if (loading) return loading;
-        loading = Promise.all([J('/players?select=*'), J('/teams?select=*'), J('/matches?select=id,gameweek,status,home_team_id,away_team_id,home_score,away_score,match_datetime'),
-            J('/goals?select=match_id,player_id,assist_player_id'), J('/match_lineups?select=match_id,team_id,player_id,role'),
-            J('/match_events?select=match_id,player_id,kind&kind=eq.sub'), J('/fantasy_teams?select=player_ids')]).then(function (r) {
-            D = build(r); T = Date.now(); loading = null; return D;
+        loading = Promise.all([J('/players?select=*'), J('/teams?select=*'), J('/matches?select=*'), J('/goals?select=match_id,player_id,assist_player_id'),
+            J('/match_lineups?select=match_id,team_id,player_id,role'), J('/match_events?select=match_id,player_id,player2_id,minute,kind'), J('/fantasy_teams?select=id,player_ids')]).then(function (r) {
+            var players = {}, plist = r[0].filter(function (p) { return GOAL[p.position]; });
+            plist.forEach(function (p) { players[p.id] = p; });
+            var teams = {}; r[1].forEach(function (t) { teams[t.id] = t; });
+            var G = gwTable(r[2]), c = calc(G, r[3], r[4], r[5], plist), own = {};
+            r[6].forEach(function (t) { (t.player_ids || []).forEach(function (id) { own[id] = (own[id] || 0) + 1; }); });
+            D = { players: players, plist: plist, teams: teams, matches: r[2], G: G, pp: c.pp, det: c.det, own: own, nFan: r[6].length };
+            T = Date.now(); loading = null; return D;
         }, function (e) { loading = null; throw e; });
         return loading;
     }
-    function played(m) { return m.status === 'completed' && m.home_score !== null && m.away_score !== null && m.home_score !== undefined; }
-    function build(r) {
-        var players = {}, plist = r[0].filter(function (p) { return GOAL[p.position]; });
-        plist.forEach(function (p) { players[p.id] = p; });
-        var teams = {}; r[1].forEach(function (t) { teams[t.id] = t; });
-        var matches = r[2], goals = r[3], lineups = r[4], subs = r[5], fan = r[6];
-        var hasLu = {}, app = {}, g = {}, a = {};
-        lineups.forEach(function (l) { hasLu[l.match_id] = true; if (l.role === 'start') (app[l.match_id] = app[l.match_id] || {})[l.player_id] = true; });
-        subs.forEach(function (e) { if (e.player_id) (app[e.match_id] = app[e.match_id] || {})[e.player_id] = true; });
-        goals.forEach(function (x) {
-            if (x.player_id) { var k = x.match_id + ':' + x.player_id; g[k] = (g[k] || 0) + 1; (app[x.match_id] = app[x.match_id] || {})[x.player_id] = true; }
-            if (x.assist_player_id) { var k2 = x.match_id + ':' + x.assist_player_id; a[k2] = (a[k2] || 0) + 1; (app[x.match_id] = app[x.match_id] || {})[x.assist_player_id] = true; }
-        });
-        var byTeam = {}; matches.forEach(function (m) { (byTeam[m.home_team_id] = byTeam[m.home_team_id] || []).push(m); (byTeam[m.away_team_id] = byTeam[m.away_team_id] || []).push(m); });
-        var cache = {};
-        function pm(pid, m) {
-            var key = pid + ':' + m.id; if (cache[key]) return cache[key];
-            var p = players[pid], home = m.home_team_id === p.team_id, o = { items: [], pts: 0, played: played(m), m: m, home: home };
-            if (o.played) {
-                var did = hasLu[m.id] ? !!(app[m.id] && app[m.id][pid]) : (!p.is_substitute || !!(app[m.id] && app[m.id][pid]));
-                var conceded = home ? m.away_score : m.home_score;
-                if (did) o.items.push([L('Played', 'Alicheza'), 1]);
-                var gl = g[m.id + ':' + pid] || 0, as = a[m.id + ':' + pid] || 0;
-                if (gl) o.items.push([L('Goals', 'Mabao') + ' ×' + gl, gl * GOAL[p.position]]);
-                if (as) o.items.push([L('Assists', 'Pasi') + ' ×' + as, as * 3]);
-                if (did && conceded === 0 && p.position !== 'FWD') o.items.push([L('Clean sheet', 'Hakuna bao'), p.position === 'MID' ? 1 : 4]);
-                o.pts = o.items.reduce(function (s, i) { return s + i[1]; }, 0);
-            }
-            return (cache[key] = o);
-        }
-        function forPlayer(pid, gw) {
-            var p = players[pid]; if (!p) return [];
-            return (byTeam[p.team_id] || []).filter(function (m) { return Number(m.gameweek) === gw; }).map(function (m) { return pm(pid, m); });
-        }
-        function total(pid) {
-            var p = players[pid]; if (!p) return 0;
-            return (byTeam[p.team_id] || []).reduce(function (s, m) { return s + pm(pid, m).pts; }, 0);
-        }
-        function form(pid) {
-            var p = players[pid]; if (!p) return 0;
-            var ms = (byTeam[p.team_id] || []).filter(played).sort(function (x, y) { return new Date(x.match_datetime) - new Date(y.match_datetime); }).slice(-3);
-            return ms.length ? ms.reduce(function (s, m) { return s + pm(pid, m).pts; }, 0) / ms.length : 0;
-        }
-        var own = {}; fan.forEach(function (t) { (t.player_ids || []).forEach(function (id) { own[id] = (own[id] || 0) + 1; }); });
-        var gws = {}; matches.forEach(function (m) { if (m.gameweek !== null && m.gameweek !== undefined && m.gameweek !== '') gws[Number(m.gameweek)] = true; });
-        gws = Object.keys(gws).map(Number).sort(function (x, y) { return x - y; });
-        return { players: players, plist: plist, teams: teams, matches: matches, forPlayer: forPlayer, total: total, form: form, own: own, nFan: fan.length, gws: gws };
+    /* the leaderboard (Block 9) asks for points here once you do the one-line change; same rules everywhere */
+    window.fkfPoints = async function (matches, goals, G) {
+        var r = await Promise.all([J('/players?select=*'), J('/match_lineups?select=match_id,team_id,player_id,role'), J('/match_events?select=match_id,player_id,player2_id,minute,kind')]);
+        return calc(G, goals, r[1], r[2], r[0]).pp;
+    };
+    function total(d, pid) { var s = 0; Object.keys(d.pp).forEach(function (g) { s += d.pp[g][pid] || 0; }); return s; }
+    function form(d, pid) {
+        var l = []; Object.keys(d.det).forEach(function (g) { (d.det[g][pid] || []).forEach(function (x) { l.push(x); }); });
+        l.sort(function (a, b) { return new Date(a.m.match_datetime) - new Date(b.m.match_datetime); }); l = l.slice(-3);
+        return l.length ? l.reduce(function (s, x) { return s + x.pts; }, 0) / l.length : 0;
     }
 
-    /* ================= your squad (read from the Pick Team page) ================= */
-    function squad() {
+    /* ================= your squad for any gameweek ================= */
+    function domSquad() {
         var xi = [], bench = [], cap = null;
         function grab(sel, arr) {
             document.querySelectorAll(sel).forEach(function (c) {
@@ -8710,65 +8744,92 @@ body:not(.is-admin) .rf-admin{display:none !important}
             });
         }
         grab('#fz-pitch .fz-card', xi); grab('#fz-bench .fz-card', bench);
-        return { xi: xi, bench: bench, cap: cap };
+        return xi.length || bench.length ? { xi: xi, bench: bench, cap: cap, chip: null } : null;
+    }
+    function engine() { try { return window.fkfEngine && window.fkfEngine.my ? window.fkfEngine.my() : null; } catch (e) { return null; } }
+    function squadFor(d, g) {
+        var my = engine();
+        if (!my || !my.snaps || !my.snaps.length) return domSquad();
+        var by = {}, base = null;
+        my.snaps.forEach(function (s) { by[s.gameweek] = s; });
+        for (var i = 0; i < d.G.length; i++) {
+            var gw = d.G[i], s = by[gw.n], cur;
+            if (s) {
+                var ids = s.player_ids.map(Number);
+                cur = { xi: ids.slice(0, 11), bench: ids.slice(11), cap: Number(s.captain_id), chip: s.chip || null };
+                if (cur.chip !== 'free_hit') base = cur;
+            } else cur = base ? { xi: base.xi, bench: base.bench, cap: base.cap, chip: null } : null;
+            if (gw.n === g) return cur;
+        }
+        return null;
+    }
+    function gwOwn(d, sq, g) {
+        var o = d.pp[g] || {}, t = 0, mult = sq.chip === 'triple_captain' ? 3 : 2;
+        sq.xi.forEach(function (id) { t += (o[id] || 0) * (id === sq.cap ? mult : 1); });
+        if (sq.chip === 'bench_boost') sq.bench.forEach(function (id) { t += o[id] || 0; });
+        return t;
     }
 
     /* ================= Points page ================= */
-    var gwSel = null;
+    var gwSel = null, CHIPS = { bench_boost: ['Bench Boost', 'Bench Boost'], triple_captain: ['Triple Captain', 'Triple Captain'], wildcard: ['Wildcard', 'Wildcard'], free_hit: ['Free Hit', 'Free Hit'] };
     function defaultGw(d) {
         var last = null;
-        d.gws.forEach(function (g) { if (d.matches.some(function (m) { return Number(m.gameweek) === g && played(m); })) last = g; });
-        return last !== null ? last : (d.gws[0] || null);
+        d.G.forEach(function (g) { if (g.ms.some(played)) last = g.n; });
+        return last !== null ? last : (d.G[0] ? d.G[0].n : null);
     }
     function crest(d, teamId) {
         var t = d.teams[teamId]; if (!t) return '';
         return '<span class="fz-crest" style="background-color:' + paletteColor(t.name) + '">' + avatarHtml(t.name, t.crest_url) + '</span>';
     }
-    function pcard(d, pid, cap, gw) {
+    function gwMatchesOf(d, g, teamId) {
+        var gw = d.G.filter(function (x) { return x.n === g; })[0];
+        return gw ? gw.ms.filter(function (m) { return m.home_team_id === teamId || m.away_team_id === teamId; }) : [];
+    }
+    function pcard(d, pid, sq, g) {
         var p = d.players[pid]; if (!p) return '';
-        var ms = d.forPlayer(pid, gw), pts = ms.reduce(function (s, x) { return s + x.pts; }, 0), isCap = pid === cap;
-        var shown = pts * (isCap ? 2 : 1), any = ms.some(function (x) { return x.played; });
-        var opp = ms.map(function (x) {
-            var o = d.teams[x.home ? x.m.away_team_id : x.m.home_team_id];
-            return (o ? o.name.slice(0, 3).toUpperCase() : 'TBC') + ' (' + (x.home ? 'H' : 'A') + ')';
+        var o = (d.pp[g] || {})[pid] || 0, isCap = pid === sq.cap, mult = sq.chip === 'triple_captain' ? 3 : 2;
+        var fx = gwMatchesOf(d, g, p.team_id), any = fx.some(played);
+        var opp = fx.map(function (m) {
+            var home = m.home_team_id === p.team_id, t = d.teams[home ? m.away_team_id : m.home_team_id];
+            return (t ? t.name.slice(0, 3).toUpperCase() : 'TBC') + ' (' + (home ? 'H' : 'A') + ')';
         }).join(', ');
-        return '<div class="fz-card' + (any ? '' : ' nopl') + '" data-pid="' + pid + '">' + (isCap ? '<span class="fz-cap">C</span>' : '') +
+        return '<div class="fz-card' + (any ? '' : ' nopl') + '" data-pid="' + pid + '">' + (isCap ? '<span class="fz-cap">' + (sq.chip === 'triple_captain' ? '3x' : 'C') + '</span>' : '') +
             '<div class="fz-photo" style="background-color:' + paletteColor(nm(p)) + '">' + avatarHtml(nm(p), p.image_url) + '</div>' + crest(d, p.team_id) +
-            '<div class="fz-plate"><div class="fz-pn">' + esc(short(p)) + '</div><div class="fz-pp"><b>' + shown + ' pts</b>' + (opp ? '<i>' + esc(opp) + '</i>' : '') + '</div></div></div>';
+            '<div class="fz-plate"><div class="fz-pn">' + esc(short(p)) + '</div><div class="fz-pp"><b>' + (o * (isCap ? mult : 1)) + ' pts</b>' + (opp ? '<i>' + esc(opp) + '</i>' : '') + '</div></div></div>';
     }
     function renderPoints() {
-        var sq = squad();
-        if (!sq.xi.length && !sq.bench.length) { ptsView.innerHTML = '<div class="pv-empty">' + L('Pick your team first. Your players and their points will show here.', 'Chagua kikosi chako kwanza. Wachezaji na pointi zao zitaonekana hapa.') + '</div>'; return; }
         ptsView.innerHTML = '<div class="pv-empty">' + L('Loading points...', 'Inapakia pointi...') + '</div>';
-        load().then(function (d) {
+        load(true).then(function (d) {
             if (fp.dataset.seg !== 'points') return;
-            if (gwSel === null || d.gws.indexOf(gwSel) === -1) gwSel = defaultGw(d);
+            if (gwSel === null || !d.G.some(function (x) { return x.n === gwSel; })) gwSel = defaultGw(d);
             if (gwSel === null) { ptsView.innerHTML = '<div class="pv-empty">' + L('No gameweeks yet.', 'Hakuna raundi bado.') + '</div>'; return; }
-            var cap = sq.cap;
-            function gwPts(g) { return sq.xi.reduce(function (s, id) { return s + d.forPlayer(id, g).reduce(function (t, x) { return t + x.pts; }, 0) * (id === cap ? 2 : 1); }, 0); }
-            var season = d.gws.reduce(function (s, g) { return s + gwPts(g); }, 0);
-            var gm = d.matches.filter(function (m) { return Number(m.gameweek) === gwSel; }), done = gm.filter(played).length;
-            var idx = d.gws.indexOf(gwSel);
+            var sq = squadFor(d, gwSel), idx = d.G.map(function (x) { return x.n; }).indexOf(gwSel);
+            var gm = d.G[idx].ms, done = gm.filter(played).length;
             var times = gm.map(function (m) { return new Date(m.match_datetime).getTime(); }).filter(function (x) { return !isNaN(x); });
-            var dates = times.length ? new Date(Math.min.apply(null, times)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Africa/Nairobi' }) + ' - ' + new Date(Math.max.apply(null, times)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Africa/Nairobi' }) : '';
+            var fmtD = function (t) { return new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Africa/Nairobi' }); };
+            var dates = times.length ? fmtD(Math.min.apply(null, times)) + ' - ' + fmtD(Math.max.apply(null, times)) : '';
+            var nav = '<div class="pv-nav"><button type="button" data-g="-1"' + (idx <= 0 ? ' disabled' : '') + ' aria-label="Previous">‹</button><div class="mid"><b>' + L('Gameweek', 'Raundi') + ' ' + gwSel + '</b><small>' + esc(dates) + ' · ' + done + '/' + gm.length + ' ' + L('played', 'zimechezwa') + '</small></div><button type="button" data-g="1"' + (idx >= d.G.length - 1 ? ' disabled' : '') + ' aria-label="Next">›</button></div>';
+            if (!sq) { ptsView.innerHTML = nav + '<div class="pv-empty">' + L('You had no team in this gameweek. Pick your team and save it to start scoring.', 'Hukuwa na timu raundi hii.') + '</div>'; ptsView._d = d; return; }
+            var eg0 = engine(), eg = eg0 && eg0.snaps && eg0.snaps.length ? eg0 : null, own = gwOwn(d, sq, gwSel), shown = own, hit = 0;
+            if (eg && eg.R && eg.R.gw && eg.R.gw[gwSel] !== undefined) { shown = eg.R.gw[gwSel]; hit = own - shown; }
+            var season = eg && eg.R && eg.R.total !== undefined ? eg.R.total : d.G.reduce(function (s, x) { var q = squadFor(d, x.n); return s + (q ? gwOwn(d, q, x.n) : 0); }, 0);
             var byPos = { FWD: [], MID: [], DEF: [], GK: [] };
             sq.xi.forEach(function (id) { var p = d.players[id]; if (p) byPos[p.position].push(id); });
-            var h = '<div class="pv-nav"><button type="button" data-g="-1"' + (idx <= 0 ? ' disabled' : '') + ' aria-label="Previous">‹</button><div class="mid"><b>' + L('Gameweek', 'Raundi') + ' ' + gwSel + '</b><small>' + esc(dates) + ' · ' + done + '/' + gm.length + ' ' + L('played', 'zimechezwa') + '</small></div><button type="button" data-g="1"' + (idx >= d.gws.length - 1 ? ' disabled' : '') + ' aria-label="Next">›</button></div>' +
-                '<div class="pv-tiles"><div class="big"><b>' + gwPts(gwSel) + '</b><span>' + L('Gameweek points', 'Pointi za raundi') + '</span></div><div><b>' + season + '</b><span>' + L('Season total', 'Jumla') + '</span></div><div><b>' + sq.xi.length + '/11</b><span>' + L('Starting XI', 'Kikosi') + '</span></div></div>' +
-                '<div class="fz-pitch">';
-            ['FWD', 'MID', 'DEF', 'GK'].forEach(function (pos) { h += '<div class="fz-line">' + byPos[pos].map(function (id) { return pcard(d, id, cap, gwSel); }).join('') + '</div>'; });
-            h += '</div><div class="fz-bench"><div class="fz-bench-title">' + L('Substitutes', 'Akiba') + '</div><div class="fz-bench-row">' + sq.bench.map(function (id) { return pcard(d, id, cap, gwSel); }).join('') + '</div></div>' +
+            var chip = sq.chip && CHIPS[sq.chip] ? ' · ' + L(CHIPS[sq.chip][0], CHIPS[sq.chip][1]) : '';
+            var h = nav + '<div class="pv-tiles"><div class="big"><b>' + shown + '</b><span>' + L('Gameweek points', 'Pointi za raundi') + '</span></div><div><b>' + season + '</b><span>' + L('Season total', 'Jumla') + '</span></div><div><b>' + sq.xi.length + '/11</b><span>' + L('Starting XI', 'Kikosi') + '</span></div></div>' +
+                (hit > 0 || chip ? '<div class="pv-hint" style="margin:-4px 2px 10px">' + (hit > 0 ? L('Transfer cost: -', 'Gharama ya uhamisho: -') + hit : '') + esc(chip) + '</div>' : '') + '<div class="fz-pitch">';
+            ['FWD', 'MID', 'DEF', 'GK'].forEach(function (pos) { h += '<div class="fz-line">' + byPos[pos].map(function (id) { return pcard(d, id, sq, gwSel); }).join('') + '</div>'; });
+            h += '</div><div class="fz-bench"><div class="fz-bench-title">' + L('Substitutes', 'Akiba') + '</div><div class="fz-bench-row">' + sq.bench.map(function (id) { return pcard(d, id, sq, gwSel); }).join('') + '</div></div>' +
                 '<div class="pv-hint">' + L('Tap a player to see how the points were earned. A player scores 0 until their match is played. Captain points are doubled.', 'Gusa mchezaji kuona pointi zilivyopatikana. Mchezaji ana 0 hadi mechi yake ichezwe. Pointi za nahodha zinaongezwa mara mbili.') + '</div>';
-            ptsView.innerHTML = h;
-            ptsView._d = d; ptsView._cap = cap;
+            ptsView.innerHTML = h; ptsView._d = d; ptsView._sq = sq;
         }).catch(function () { ptsView.innerHTML = '<div class="pv-empty">' + L('Could not load points. Check your connection and try again.', 'Imeshindwa kupakia pointi.') + '</div>'; });
     }
     ptsView.addEventListener('click', function (e) {
         var gb = e.target.closest('[data-g]');
         if (gb && !gb.disabled) {
             var d = ptsView._d; if (!d) return;
-            var i = d.gws.indexOf(gwSel) + Number(gb.dataset.g);
-            if (i >= 0 && i < d.gws.length) { gwSel = d.gws[i]; renderPoints(); }
+            var i = d.G.map(function (x) { return x.n; }).indexOf(gwSel) + Number(gb.dataset.g);
+            if (i >= 0 && i < d.G.length) { gwSel = d.G[i].n; renderPoints(); }
             return;
         }
         var c = e.target.closest('.fz-card[data-pid]'); if (c) openBd(Number(c.dataset.pid));
@@ -8782,19 +8843,21 @@ body:not(.is-admin) .rf-admin{display:none !important}
     bd.addEventListener('click', function (e) { if (e.target === bd || e.target.closest('.x')) closeBd(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeBd(); });
     function openBd(pid) {
-        var d = ptsView._d; if (!d) return;
-        var p = d.players[pid], isCap = pid === ptsView._cap, ms = d.forPlayer(pid, gwSel), sum = 0, h = '';
+        var d = ptsView._d, sq = ptsView._sq; if (!d || !sq) return;
+        var p = d.players[pid], isCap = pid === sq.cap, mult = sq.chip === 'triple_captain' ? 3 : 2, h = '', sum = 0;
         bd.querySelector('.t').textContent = nm(p);
-        if (!ms.length) h = '<div class="none">' + L('No match this gameweek.', 'Hakuna mechi raundi hii.') + '</div>';
-        ms.forEach(function (x) {
-            var o = d.teams[x.home ? x.m.away_team_id : x.m.home_team_id], me = d.teams[p.team_id];
-            h += '<div class="m">' + esc(x.home ? me.name : (o ? o.name : 'TBC')) + (x.played ? ' ' + x.m.home_score + '-' + x.m.away_score + ' ' : ' v ') + esc(x.home ? (o ? o.name : 'TBC') : me.name) + '</div>';
-            if (!x.played) h += '<div class="none">' + L('Not played yet. 0 points.', 'Bado haijachezwa. Pointi 0.') + '</div>';
-            else if (!x.items.length) h += '<div class="none">' + L('Did not play. 0 points.', 'Hakucheza. Pointi 0.') + '</div>';
+        var fx = gwMatchesOf(d, gwSel, p.team_id), det = ((d.det[gwSel] || {})[pid]) || [];
+        if (!fx.length) h = '<div class="none">' + L('No match this gameweek.', 'Hakuna mechi raundi hii.') + '</div>';
+        fx.forEach(function (m) {
+            var home = m.home_team_id === p.team_id, me = d.teams[p.team_id] || { name: '' }, o = d.teams[home ? m.away_team_id : m.home_team_id] || { name: 'TBC' };
+            h += '<div class="m">' + esc(home ? me.name : o.name) + (played(m) ? ' ' + m.home_score + '-' + m.away_score + ' ' : ' v ') + esc(home ? o.name : me.name) + '</div>';
+            if (!played(m)) { h += '<div class="none">' + L('Not played yet. 0 points.', 'Bado haijachezwa. Pointi 0.') + '</div>'; return; }
+            var x = det.filter(function (z) { return z.m.id === m.id; })[0];
+            if (!x) { h += '<div class="none">' + L('Did not play. 0 points.', 'Hakucheza. Pointi 0.') + '</div>'; return; }
             x.items.forEach(function (i) { h += '<div class="row"><span>' + esc(i[0]) + '</span><b>' + (i[1] > 0 ? '+' : '') + i[1] + '</b></div>'; });
             sum += x.pts;
         });
-        h += '<div class="tot"><span>' + L('Total', 'Jumla') + (isCap ? ' (' + L('captain', 'nahodha') + ' ×2)' : '') + '</span><span>' + sum * (isCap ? 2 : 1) + '</span></div>';
+        h += '<div class="tot"><span>' + L('Total', 'Jumla') + (isCap ? ' (' + L('captain', 'nahodha') + ' ×' + mult + ')' : '') + '</span><span>' + sum * (isCap ? mult : 1) + '</span></div>';
         bd.querySelector('.bd').innerHTML = h; bd.classList.add('on');
     }
 
@@ -8802,7 +8865,7 @@ body:not(.is-admin) .rf-admin{display:none !important}
     var S = { pos: '', club: '', sort: 'tp', q: '' };
     function renderStats() {
         stView.innerHTML = '<div class="pv-empty">' + L('Loading...', 'Inapakia...') + '</div>';
-        load().then(function (d) {
+        load(true).then(function (d) {
             if (fp.dataset.seg !== 'stats') return;
             var clubs = Object.keys(d.teams).map(function (k) { return d.teams[k]; }).sort(function (a, b) { return a.name.localeCompare(b.name); });
             function o(v, cur, l) { return '<option value="' + v + '"' + (String(v) === String(cur) ? ' selected' : '') + '>' + esc(l) + '</option>'; }
@@ -8810,14 +8873,14 @@ body:not(.is-admin) .rf-admin{display:none !important}
                 '<select id="st-club">' + o('', S.club, L('All clubs', 'Vilabu vyote')) + clubs.map(function (t) { return o(t.id, S.club, t.name); }).join('') + '</select>' +
                 '<select id="st-sort">' + [['tp', L('Total points', 'Pointi zote')], ['form', L('Form', 'Fomu')], ['own', L('Selected by', 'Waliochaguliwa')], ['price', L('Price', 'Bei')]].map(function (x) { return o(x[0], S.sort, x[1]); }).join('') + '</select>' +
                 '<input id="st-q" type="text" placeholder="' + L('Search by name', 'Tafuta kwa jina') + '" value="' + esc(S.q) + '"></div>' +
-                '<div class="st-box"><div class="st-h"><span>' + L('Player', 'Mchezaji') + '</span><span>' + L('Price', 'Bei') + '</span><span>TSB%</span><span>' + L('Form', 'Fomu') + '</span><span>TP</span></div><div id="st-rows"></div><div class="st-note">' + L('Points follow the Fantasy rules: played +1, goals, assists, clean sheets. TSB% is the share of Fantasy teams that picked the player. Form is the average over the last 3 matches. Tap a player for details.', 'Pointi zinafuata sheria za Fantasy. TSB% ni asilimia ya timu zilizomchagua mchezaji. Fomu ni wastani wa mechi 3 za mwisho.') + '</div></div>';
+                '<div class="st-box"><div class="st-h"><span>' + L('Player', 'Mchezaji') + '</span><span>' + L('Price', 'Bei') + '</span><span>TSB%</span><span>' + L('Form', 'Fomu') + '</span><span>TP</span></div><div id="st-rows"></div><div class="st-note">' + L('Fantasy Premier League points: played 1-2, goals, assists, clean sheets, cards. TSB% is the share of Fantasy teams that picked the player. Form is the average over the last 3 matches. Tap a player for details.', 'Pointi za Fantasy Premier League. TSB% ni asilimia ya timu zilizomchagua mchezaji. Fomu ni wastani wa mechi 3 za mwisho.') + '</div></div>';
             rows(d);
         }).catch(function () { stView.innerHTML = '<div class="pv-empty">' + L('Could not load statistics.', 'Imeshindwa kupakia takwimu.') + '</div>'; });
     }
     function rows(d) {
         var q = S.q.toLowerCase(), list = d.plist.filter(function (p) {
             return (!S.pos || p.position === S.pos) && (!S.club || String(p.team_id) === String(S.club)) && (!q || (nm(p) + ' ' + p.full_name).toLowerCase().indexOf(q) > -1);
-        }).map(function (p) { return { p: p, tp: d.total(p.id), form: d.form(p.id), own: d.nFan ? Math.round(100 * (d.own[p.id] || 0) / d.nFan) : 0, price: price(p) }; });
+        }).map(function (p) { return { p: p, tp: total(d, p.id), form: form(d, p.id), own: d.nFan ? Math.round(100 * (d.own[p.id] || 0) / d.nFan) : 0, price: price(p) }; });
         list.sort(function (a, b) { return (b[S.sort] - a[S.sort]) || (b.tp - a.tp) || nm(a.p).localeCompare(nm(b.p)); });
         var box = $('st-rows'); if (!box) return;
         box.innerHTML = list.length ? list.slice(0, 60).map(function (x) {
@@ -8845,13 +8908,11 @@ body:not(.is-admin) .rf-admin{display:none !important}
         try { window.scrollTo(0, 0); } catch (x) { }
     }, true);
 
-    /* draw whichever of the two pages is opened */
     var last = null;
     new MutationObserver(function () {
         var s = fp.dataset.seg; if (s === last) return; last = s;
         if (s === 'points') renderPoints(); else if (s === 'stats') renderStats();
     }).observe(fp, { attributes: true, attributeFilter: ['data-seg'] });
-    document.addEventListener('visibilitychange', function () { if (!document.hidden) T = 0; });
 })();
 </script>
 </body>
