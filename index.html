@@ -8914,6 +8914,70 @@ body:not(.is-admin) .rf-admin{display:none !important}
         if (s === 'points') renderPoints(); else if (s === 'stats') renderStats();
     }).observe(fp, { attributes: true, attributeFilter: ['data-seg'] });
 })();
+</script><style>
+/* Block 22: LIVE badge, live score and stopwatch on match cards */
+.status-badge.lv{background:#E31B23!important;color:#fff!important;border-color:#E31B23!important;display:inline-flex;align-items:center;gap:6px;font-weight:800}
+.status-badge.lv i{width:7px;height:7px;border-radius:50%;background:#fff;display:inline-block;animation:fkflv 1.1s infinite}
+@keyframes fkflv{0%,100%{opacity:1}50%{opacity:.25}}
+.card.is-live{border-color:rgba(227,27,35,.7)!important;box-shadow:0 0 0 1px rgba(227,27,35,.5),0 8px 22px rgba(0,0,0,.3)}
+.card.is-live .fx-score{color:#fff;font-weight:800}
+</style>
+<script>
+(function () {
+    if (window.__fkfB22) return; window.__fkfB22 = true;
+    var LIVE = {}, seen = {}, box = null;
+    function J(path) { return fetch(DB_URL + path, { headers: headers }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+    function minute(l) {
+        if (l.phase === 'ht') return 'HT';
+        if (!l.kick) return '';
+        var m = Math.floor((Date.now() - new Date(l.kick).getTime()) / 60000) + 1;
+        if (m < 1) return '';
+        if (m <= 45) return m + "'";
+        if (m <= 62) return m <= 47 ? "45+'" : 'HT';
+        m -= 15;
+        return m <= 90 ? m + "'" : "90+'";
+    }
+    function paint() {
+        box = document.getElementById('matches-container'); if (!box) return;
+        box.querySelectorAll('.card').forEach(function (c) {
+            var b = c.querySelector('.enter-result-btn'), mm = b && (b.getAttribute('onclick') || '').match(/openResultModal\((\d+)\)/);
+            var id = mm ? mm[1] : c.dataset.fkfLid;
+            if (!id) return;
+            c.dataset.fkfLid = id;
+            var l = LIVE[id], badge = c.querySelector('.status-badge'), sc = c.querySelectorAll('.fx-score');
+            if (!badge || sc.length < 2) return;
+            if (l) {
+                if (!c.dataset.fkfOrig) c.dataset.fkfOrig = badge.innerHTML;
+                var min = minute(l), html = '<i></i>LIVE' + (min ? ' ' + min : '');
+                if (badge.innerHTML !== html) badge.innerHTML = html;
+                badge.classList.add('lv'); c.classList.add('is-live');
+                if (sc[0].textContent !== String(l.home_score)) sc[0].textContent = l.home_score;
+                if (sc[1].textContent !== String(l.away_score)) sc[1].textContent = l.away_score;
+            } else if (c.classList.contains('is-live')) {
+                c.classList.remove('is-live'); badge.classList.remove('lv');
+                if (c.dataset.fkfOrig) badge.innerHTML = c.dataset.fkfOrig;
+                sc[0].textContent = ''; sc[1].textContent = '';
+            }
+        });
+    }
+    async function poll() {
+        if (document.hidden) return;
+        var r = await J('/live_matches?select=*'); if (!r) return;
+        var next = {}; r.forEach(function (x) { next[x.match_id] = x; });
+        var ended = Object.keys(seen).some(function (id) { return !next[id]; });
+        LIVE = next; seen = Object.assign({}, next);
+        paint();
+        if (ended && !window.__fkfReloading) { window.__fkfReloading = true; setTimeout(function () { location.reload(); }, 2500); }   /* full time: reload so the table and results update */
+    }
+    var q = false;
+    function later() { if (q) return; q = true; requestAnimationFrame(function () { q = false; paint(); }); }
+    document.addEventListener('DOMContentLoaded', function () {});
+    var mc = document.getElementById('matches-container');
+    if (mc) new MutationObserver(later).observe(mc, { childList: true, subtree: true });
+    setInterval(paint, 30000);   /* keeps the stopwatch moving */
+    setInterval(poll, 20000);
+    setTimeout(poll, 1200);
+})();
 </script>
 </body>
 </html>
