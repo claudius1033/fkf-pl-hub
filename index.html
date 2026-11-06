@@ -9037,5 +9037,199 @@ body:not(.is-admin) .rf-admin{display:none !important}
     }).observe(fp, { attributes: true, attributeFilter: ['data-seg'] });
 })();
 </script>
+<style>
+/* Block 23: manager profile pop-up (opens from the manager photo or name) */
+.fkf-mlink{cursor:pointer}
+img.fkf-mlink,.fkf-mlink img{transition:transform .15s,box-shadow .15s}
+.fkf-mlink:hover img,img.fkf-mlink:hover{box-shadow:0 0 0 2px #FFC72C}
+span.fkf-mlink:hover,.mgr-name:hover{color:#FFC72C;text-decoration:underline}
+#fkf-mp{position:fixed;inset:0;z-index:100000;display:none;align-items:flex-start;justify-content:center;background:rgba(5,6,9,.78);overflow:auto;padding:24px 14px}
+#fkf-mp.on{display:flex}
+#fkf-mp .mp-box{width:100%;max-width:640px;background:#12141c;border:1px solid #2a3042;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;color:#fff}
+#fkf-mp .mp-top{display:flex;align-items:center;gap:16px;padding:20px;background:linear-gradient(135deg,#3a0b10,#12141c 70%);border-bottom:1px solid #2a3042;position:relative}
+#fkf-mp .mp-av{width:84px;height:84px;border-radius:14px;overflow:hidden;border:2px solid #FFC72C;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.6rem}
+#fkf-mp .mp-av img{width:100%;height:100%;object-fit:cover}
+#fkf-mp .mp-name{font-size:1.35rem;font-weight:800;line-height:1.2}
+#fkf-mp .mp-club{color:#FFC72C;font-weight:700;margin-top:4px;display:flex;align-items:center;gap:8px}
+#fkf-mp .mp-club .crest{width:22px;height:22px}
+#fkf-mp .mp-sub{color:#8F96A8;font-size:.78rem;margin-top:4px}
+#fkf-mp .mp-x{position:absolute;right:12px;top:12px;width:34px;height:34px;border-radius:50%;border:1px solid #2a3042;background:#1a1d28;color:#fff;font-size:1.1rem;cursor:pointer}
+#fkf-mp .mp-body{padding:18px 20px 22px}
+#fkf-mp .mp-h{font-size:.78rem;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#FFC72C;margin:18px 0 10px}
+#fkf-mp .mp-h:first-child{margin-top:0}
+#fkf-mp .mp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+#fkf-mp .mp-grid div{background:#1a1d28;border:1px solid #232735;border-radius:10px;padding:10px 6px;text-align:center}
+#fkf-mp .mp-grid b{display:block;font-size:1.25rem}
+#fkf-mp .mp-grid span{display:block;font-size:.66rem;color:#8F96A8;margin-top:2px;text-transform:uppercase;letter-spacing:.4px}
+#fkf-mp .mp-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #1f2330;font-size:.88rem}
+#fkf-mp .mp-row span{color:#8F96A8}
+#fkf-mp .mp-form{display:inline-flex;gap:5px}
+#fkf-mp .mp-form i,#fkf-mp .mp-res i{font-style:normal;font-weight:800;font-size:.72rem;width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center}
+#fkf-mp i.W{background:#1f8a4c}#fkf-mp i.D{background:#6b7080}#fkf-mp i.L{background:#c4161e}
+#fkf-mp .mp-fx{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1f2330;font-size:.84rem}
+#fkf-mp .mp-fx .d{color:#8F96A8;width:62px;flex-shrink:0;font-size:.72rem}
+#fkf-mp .mp-fx .o{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fkf-mp .mp-fx .s{font-weight:800;width:54px;text-align:center}
+#fkf-mp .mp-note{font-size:.72rem;color:#8F96A8;margin-top:14px;line-height:1.5}
+#fkf-mp .mp-split{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#fkf-mp .mp-split div{background:#1a1d28;border:1px solid #232735;border-radius:10px;padding:10px 12px}
+#fkf-mp .mp-split b{display:block;font-size:.72rem;color:#8F96A8;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+@media(max-width:480px){#fkf-mp .mp-grid{grid-template-columns:repeat(2,1fr)}#fkf-mp .mp-top{padding-right:50px}}
+</style>
+<script>
+(function () {
+    if (window.__fkfB23) return; window.__fkfB23 = true;
+    function sw() { return String(document.documentElement.lang || '').toLowerCase().indexOf('sw') === 0; }
+    function L(en, s) { return sw() && s ? s : en; }
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    function J(path) { return fetch(DB_URL + path, { headers: headers }).then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }); }
+    function av(name, img) {
+        var bg = (typeof paletteColor === 'function') ? paletteColor(name) : '#232735';
+        var inner = (typeof avatarHtml === 'function') ? avatarHtml(name, img) : (img ? '<img src="' + esc(img) + '" alt="">' : esc(String(name || '?').slice(0, 2).toUpperCase()));
+        return '<div class="mp-av" style="background-color:' + bg + '">' + inner + '</div>';
+    }
+
+    /* ---------- the pop-up ---------- */
+    var box = document.createElement('div');
+    box.id = 'fkf-mp';
+    box.innerHTML = '<div class="mp-box" role="dialog" aria-modal="true"></div>';
+    document.body.appendChild(box);
+    var inner = box.firstChild;
+    function close() { box.classList.remove('on'); document.body.style.overflow = ''; }
+    box.addEventListener('click', function (e) { if (e.target === box || e.target.closest('.mp-x')) close(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && box.classList.contains('on')) close(); });
+
+    var fmt = new Intl.DateTimeFormat(sw() ? 'sw-KE' : 'en-GB', { day: 'numeric', month: 'short', timeZone: 'Africa/Nairobi' });
+    function done(m) { return m.status === 'completed' && m.home_score != null && m.away_score != null; }
+
+    function record(teamId, matches, since) {
+        var g = [];
+        matches.forEach(function (m) {
+            var home = String(m.home_team_id) === String(teamId), away = String(m.away_team_id) === String(teamId);
+            if (!home && !away || !done(m)) return;
+            if (since && new Date(m.match_datetime) < since) return;
+            var gf = home ? m.home_score : m.away_score, ga = home ? m.away_score : m.home_score;
+            g.push({ m: m, home: home, opp: home ? m.away_team_id : m.home_team_id, gf: gf, ga: ga, r: gf > ga ? 'W' : (gf < ga ? 'L' : 'D'), t: new Date(m.match_datetime).getTime() });
+        });
+        g.sort(function (a, b) { return a.t - b.t; });
+        var s = { g: g, p: g.length, w: 0, d: 0, l: 0, gf: 0, ga: 0, cs: 0, fts: 0, H: { w: 0, d: 0, l: 0 }, A: { w: 0, d: 0, l: 0 } };
+        g.forEach(function (x) {
+            s[x.r.toLowerCase()]++; s.gf += x.gf; s.ga += x.ga; if (x.ga === 0) s.cs++; if (x.gf === 0) s.fts++;
+            (x.home ? s.H : s.A)[x.r.toLowerCase()]++;
+        });
+        s.pts = s.w * 3 + s.d; s.ppg = s.p ? s.pts / s.p : 0; s.win = s.p ? Math.round(100 * s.w / s.p) : 0;
+        var run = 0; for (var i = g.length - 1; i >= 0 && g[i].r !== 'L'; i--) run++; s.unbeaten = run;
+        var best = null; g.forEach(function (x) { if (x.r === 'W' && (!best || x.gf - x.ga > best.gf - best.ga || (x.gf - x.ga === best.gf - best.ga && x.gf > best.gf))) best = x; });
+        s.best = best;
+        return s;
+    }
+
+    async function open(teamId) {
+        inner.innerHTML = '<div class="mp-top"><div class="mp-name">' + esc(L('Loading...', 'Inapakia...')) + '</div><button class="mp-x" aria-label="Close">✕</button></div>';
+        box.classList.add('on'); document.body.style.overflow = 'hidden';
+        var r = await Promise.all([J('/teams?select=*'), J('/matches?select=*&order=match_datetime.asc')]);
+        var teams = r[0], matches = r[1];
+        var t = teams.filter(function (x) { return String(x.id) === String(teamId); })[0];
+        if (!t) { inner.innerHTML = '<div class="mp-top"><div class="mp-name">' + esc(L('Not found', 'Haipatikani')) + '</div><button class="mp-x">✕</button></div>'; return; }
+        var tn = {}; teams.forEach(function (x) { tn[x.id] = x; });
+        var since = t.manager_since ? new Date(t.manager_since) : null; if (since && isNaN(since)) since = null;
+        var s = record(t.id, matches, since);
+
+        /* rank among managers by points per game, and league position by points */
+        var ranks = teams.filter(function (x) { return x.manager; }).map(function (x) { var q = record(x.id, matches, x.manager_since ? new Date(x.manager_since) : null); return { id: x.id, ppg: q.ppg, win: q.win, p: q.p }; })
+            .filter(function (x) { return x.p > 0; }).sort(function (a, b) { return b.ppg - a.ppg || b.win - a.win; });
+        var rk = ranks.map(function (x) { return String(x.id); }).indexOf(String(t.id));
+        var tab = teams.map(function (x) { var q = record(x.id, matches, null); return { id: x.id, pts: q.pts, gd: q.gf - q.ga, gf: q.gf, p: q.p }; })
+            .filter(function (x) { return x.p > 0; }).sort(function (a, b) { return b.pts - a.pts || b.gd - a.gd || b.gf - a.gf; });
+        var pos = tab.map(function (x) { return String(x.id); }).indexOf(String(t.id));
+
+        function cell(l, v) { return '<div><b>' + v + '</b><span>' + esc(l) + '</span></div>'; }
+        function row(l, v) { return '<div class="mp-row"><span>' + esc(l) + '</span><b>' + v + '</b></div>'; }
+        var gd = s.gf - s.ga;
+        var form = s.g.slice(-5).map(function (x) { return '<i class="' + x.r + '">' + x.r + '</i>'; }).join('') || '-';
+        var nextM = matches.filter(function (m) { return (String(m.home_team_id) === String(t.id) || String(m.away_team_id) === String(t.id)) && m.status !== 'completed' && m.status !== 'postponed'; })
+            .sort(function (a, b) { return new Date(a.match_datetime) - new Date(b.match_datetime); })[0];
+        var nextTxt = '-';
+        if (nextM) { var h = String(nextM.home_team_id) === String(t.id), o = tn[h ? nextM.away_team_id : nextM.home_team_id]; nextTxt = esc((o ? o.name : 'TBC') + ' (' + (h ? 'H' : 'A') + ') · ' + fmt.format(new Date(nextM.match_datetime))); }
+        function split(x) { return x.w + ' W · ' + x.d + ' D · ' + x.l + ' L'; }
+        var list = s.g.slice().reverse().map(function (x) {
+            var o = tn[x.opp];
+            return '<div class="mp-fx"><span class="d">' + esc(fmt.format(new Date(x.t))) + '</span><span class="o">' + esc(o ? o.name : 'TBC') + ' <span style="color:#8F96A8">(' + (x.home ? 'H' : 'A') + ')</span></span><span class="s">' + x.gf + ' - ' + x.ga + '</span><i class="' + x.r + '" style="font-style:normal;font-weight:800;font-size:.72rem;width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center">' + x.r + '</i></div>';
+        }).join('') || '<div class="mp-note">' + esc(L('No matches played yet.', 'Bado hajacheza mechi.')) + '</div>';
+        var crest = (typeof avatarHtml === 'function' && t.crest_url) ? '<span class="crest" style="background-color:' + ((typeof paletteColor === 'function') ? paletteColor(t.name) : '#232735') + '">' + avatarHtml(t.name, t.crest_url) + '</span>' : '';
+
+        inner.innerHTML =
+            '<div class="mp-top">' + av(t.manager || t.name, t.manager_image) +
+            '<div><div class="mp-name">' + esc(t.manager || L('Manager', 'Kocha')) + '</div>' +
+            '<div class="mp-club">' + crest + '<span>' + esc(t.name) + '</span></div>' +
+            '<div class="mp-sub">' + esc(L('Manager · current season', 'Kocha · msimu huu')) + (since ? ' · ' + esc(L('since ', 'tangu ')) + esc(fmt.format(since)) : '') + '</div></div>' +
+            '<button class="mp-x" aria-label="Close">✕</button></div>' +
+            '<div class="mp-body">' +
+            '<div class="mp-h">' + esc(L('This season', 'Msimu huu')) + '</div>' +
+            '<div class="mp-grid">' + cell(L('Played', 'Mechi'), s.p) + cell(L('Won', 'Ushindi'), s.w) + cell(L('Drawn', 'Sare'), s.d) + cell(L('Lost', 'Kupoteza'), s.l) + '</div>' +
+            '<div class="mp-grid" style="margin-top:8px">' + cell(L('Goals for', 'Mabao'), s.gf) + cell(L('Goals against', 'Yaliyofungwa'), s.ga) + cell(L('Goal diff', 'Tofauti'), (gd > 0 ? '+' : '') + gd) + cell(L('Points', 'Pointi'), s.pts) + '</div>' +
+            '<div class="mp-h">' + esc(L('Record', 'Rekodi')) + '</div>' +
+            row(L('Win rate', 'Asilimia ya ushindi'), s.p ? s.win + '%' : '-') +
+            row(L('Points per game', 'Pointi kwa mechi'), s.p ? s.ppg.toFixed(2) : '-') +
+            row(L('Goals per game', 'Mabao kwa mechi'), s.p ? (s.gf / s.p).toFixed(2) : '-') +
+            row(L('Clean sheets', 'Mechi bila kufungwa'), s.cs) +
+            row(L('Games without scoring', 'Mechi bila kufunga'), s.fts) +
+            row(L('Unbeaten run', 'Mechi bila kufungwa mfululizo'), s.unbeaten) +
+            row(L('Biggest win', 'Ushindi mkubwa'), s.best ? esc(s.best.gf + '-' + s.best.ga + ' vs ' + (tn[s.best.opp] ? tn[s.best.opp].name : 'TBC')) : '-') +
+            row(L('Manager rank (points per game)', 'Nafasi ya kocha (pointi kwa mechi)'), rk >= 0 ? '#' + (rk + 1) + ' / ' + ranks.length : '-') +
+            row(L('Club league position', 'Nafasi ya klabu ligini'), pos >= 0 ? '#' + (pos + 1) + ' / ' + tab.length : '-') +
+            row(L('Form (last 5)', 'Matokeo ya karibuni'), '<span class="mp-form">' + form + '</span>') +
+            row(L('Next match', 'Mechi ijayo'), nextTxt) +
+            '<div class="mp-h">' + esc(L('Home and away', 'Nyumbani na ugenini')) + '</div>' +
+            '<div class="mp-split"><div><b>' + esc(L('Home', 'Nyumbani')) + '</b>' + split(s.H) + '</div><div><b>' + esc(L('Away', 'Ugenini')) + '</b>' + split(s.A) + '</div></div>' +
+            '<div class="mp-h">' + esc(L('Match by match', 'Mechi kwa mechi')) + '</div>' + list +
+            (since ? '' : '<div class="mp-note">' + esc(L('These are the club results this season. If a manager took over mid-season, add a manager_since date to the club and only the games from that date will count.', 'Haya ni matokeo ya klabu msimu huu.')) + '</div>') +
+            '</div>';
+    }
+    window.fkfManagerProfile = open;
+
+    /* ---------- make the manager photo and name clickable ---------- */
+    var curTeam = null, cache = null;
+    function teamRow(id) {
+        return (cache ? Promise.resolve(cache) : J('/teams?select=*').then(function (r) { cache = r; return r; }))
+            .then(function (r) { return r.filter(function (x) { return String(x.id) === String(id); })[0]; });
+    }
+    function mark() {
+        var rail = document.getElementById('roster-rail'); if (!rail || curTeam == null) return;
+        teamRow(curTeam).then(function (t) {
+            if (!t) return;
+            var name = String(t.manager || '').trim();
+            [].forEach.call(rail.querySelectorAll('img'), function (im) {
+                var src = im.getAttribute('src') || '';
+                if (t.manager_image && src === t.manager_image) { im.setAttribute('data-mgr', t.id); im.classList.add('fkf-mlink'); im.title = L('View manager profile', 'Tazama wasifu wa kocha'); if (im.parentElement) { im.parentElement.setAttribute('data-mgr', t.id); im.parentElement.style.cursor = 'pointer'; } }
+            });
+            [].forEach.call(rail.querySelectorAll('.meta-line'), function (ml) {
+                var a = ml.children[0], b = ml.children[1];
+                if (a && b && /^manager$/i.test(a.textContent.trim())) { b.setAttribute('data-mgr', t.id); b.classList.add('fkf-mlink'); b.title = L('View manager profile', 'Tazama wasifu wa kocha'); }
+            });
+            if (name) [].forEach.call(rail.querySelectorAll('div,span,b,h3,h4,p'), function (el) {
+                if (el.children.length === 0 && el.textContent.trim() === name && !el.hasAttribute('data-mgr')) { el.setAttribute('data-mgr', t.id); el.classList.add('fkf-mlink'); }
+            });
+        });
+    }
+    var prevOpen = window.openLineupModal;
+    if (typeof prevOpen === 'function') {
+        window.openLineupModal = function (id) { curTeam = id; var r = prevOpen.apply(this, arguments); setTimeout(mark, 50); setTimeout(mark, 600); return r; };
+    }
+    var rail = document.getElementById('roster-rail');
+    if (rail) { var q = false; new MutationObserver(function () { if (q) return; q = true; requestAnimationFrame(function () { q = false; mark(); }); }).observe(rail, { childList: true, subtree: true }); }
+
+    /* capture phase: our click wins over the card or club click underneath */
+    document.addEventListener('click', function (e) {
+        var hit = e.target.closest && e.target.closest('[data-mgr]');
+        var id = hit ? hit.getAttribute('data-mgr') : null;
+        if (!id) { var c = e.target.closest && e.target.closest('.mgr .mgr-av, .mgr .mgr-name'); if (c) id = c.closest('.mgr').getAttribute('data-club'); }
+        if (!id) return;
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        open(id);
+    }, true);
+    var st = document.createElement('style'); st.textContent = '.mgr .mgr-av,.mgr .mgr-name{cursor:pointer}'; document.head.appendChild(st);
+})();
+</script>
 </body>
 </html>
