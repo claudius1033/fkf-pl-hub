@@ -642,7 +642,7 @@
 
                 playersData.forEach(function(p) {
                     if (!playersByTeam[p.team_id]) playersByTeam[p.team_id] = [];
-                    playersByTeam[p.team_id].push(p);
+                    if (!playersByTeam[p.team_id].some(function (q) { return q.id === p.id; })) playersByTeam[p.team_id].push(p);
                 });
 
                 renderClubs(clubsData);
