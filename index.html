@@ -9304,7 +9304,7 @@ span.fkf-mlink:hover,.mgr-name:hover{color:#FFC72C;text-decoration:underline}
     opts.querySelectorAll('input').forEach(function (i) { i.checked = P.topics.indexOf(i.getAttribute('data-t')) > -1; });
     $('#fkf-n-team').value = P.team || '';
     getSub().then(function (s) { $('#fkf-n-on').checked = !!s && Notification.permission === 'granted'; bell.classList.toggle('off', !s); });
-    $('#fkf-inst').style.display = installEv ? 'block' : 'none';
+    $('#fkf-inst').style.display = 'block';
   }
   function saveSub(sub) {
     var j = sub.toJSON();
@@ -9336,7 +9336,7 @@ span.fkf-mlink:hover,.mgr-name:hover{color:#FFC72C;text-decoration:underline}
   bg.addEventListener('click', function (e) { if (e.target === bg) close(); });
   $('#fkf-close').addEventListener('click', close);
   $('#fkf-n-on').addEventListener('change', function () { readUI(); this.checked ? turnOn() : turnOff(); });
-  $('#fkf-i-btn').addEventListener('click', function () { if (installEv) { installEv.prompt(); installEv = null; paint(); } });
+  $('#fkf-i-btn').addEventListener('click', function () { if (installEv) { installEv.prompt(); installEv = null; paint(); } else { msg('To install: open your browser menu (the 3 dots) and choose "Install KPL Hub" or "Add to Home screen". On iPhone Safari: tap Share, then Add to Home Screen.'); } });
   banner.addEventListener('click', function (e) {
     var a = e.target.getAttribute && e.target.getAttribute('data-a'); if (!a) return;
     if (a === 'choose') return open();
