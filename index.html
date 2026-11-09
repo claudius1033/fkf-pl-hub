@@ -9285,7 +9285,15 @@ span.fkf-mlink:hover,.mgr-name:hover{color:#FFC72C;text-decoration:underline}
   var TOPICS = [['kickoff', 'Kick-off', 'When a match goes live'], ['goal', 'Goals', 'Every goal as it happens'], ['fulltime', 'Full-time', 'Final scores'], ['fantasy', 'Fantasy results', 'Your gameweek points are in'], ['deadline', 'Deadline reminders', 'Pick your team before it locks']];
   var installEv = null;
   function ls(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
-  var C = ls('fkf_consent') || { seen: false, prefs: false };
+  function saveC() { ls('fkf_consent24', C); try { localStorage.setItem('fkf_consent', C.prefs ? 'all' : 'essential'); } catch (e) { } }
+var C = ls('fkf_consent24');
+if (!C) {
+  var raw = null; try { raw = localStorage.getItem('fkf_consent'); } catch (e) { }
+  C = { seen: false, prefs: false };
+  if (raw === 'all') C = { seen: true, prefs: true };
+  else if (raw && raw.charAt(0) === '{') { try { C = JSON.parse(raw); } catch (e) { } }
+  if (C.seen) saveC();
+}
   var P = ls('fkf_notif') || { topics: ['kickoff', 'goal', 'fulltime', 'fantasy', 'deadline'], team: '' };
 
   var bell = document.createElement('button');
@@ -9332,7 +9340,7 @@ span.fkf-mlink:hover,.mgr-name:hover{color:#FFC72C;text-decoration:underline}
     P.topics = []; opts.querySelectorAll('input').forEach(function (i) { if (i.checked) P.topics.push(i.getAttribute('data-t')); });
     P.team = $('#fkf-n-team').value;
     C.prefs = $('#fkf-c-prefs').checked; C.seen = true;
-    ls('fkf_consent', C);
+    saveC();
     if (C.prefs) ls('fkf_notif', P); else { try { localStorage.removeItem('fkf_notif'); } catch (e) { } }
   }
   function turnOn() {
@@ -9358,7 +9366,7 @@ span.fkf-mlink:hover,.mgr-name:hover{color:#FFC72C;text-decoration:underline}
   banner.addEventListener('click', function (e) {
     var a = e.target.getAttribute && e.target.getAttribute('data-a'); if (!a) return;
     if (a === 'choose') return open();
-    C = { seen: true, prefs: a === 'all' }; ls('fkf_consent', C); if (C.prefs) ls('fkf_notif', P); banner.style.display = 'none';
+    C = { seen: true, prefs: a === 'all' }; saveC(); if (C.prefs) ls('fkf_notif', P); banner.style.display = 'none';
     if (a === 'all') open();
   });
   window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); installEv = e; });
