@@ -9228,6 +9228,130 @@ span.fkf-mlink:hover,.mgr-name:hover{color:#FFC72C;text-decoration:underline}
     }, true);
     var st = document.createElement('style'); st.textContent = '.mgr .mgr-av,.mgr .mgr-name{cursor:pointer}'; document.head.appendChild(st);
 })();
+</script><!-- BLOCK 24: notifications + preferences panel -->
+<style>
+#fkf-bell{position:fixed;left:14px;bottom:14px;z-index:9000;width:46px;height:46px;border-radius:50%;border:1px solid #2a2d36;background:#0B0C10;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+#fkf-bell:hover{border-color:#E31B23}
+#fkf-bell svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2}
+#fkf-bell i{position:absolute;top:9px;right:10px;width:9px;height:9px;border-radius:50%;background:#E31B23;display:none}
+#fkf-bell.off i{display:block}
+#fkf-banner{position:fixed;left:12px;right:12px;bottom:70px;max-width:460px;z-index:9001;background:#12141a;color:#e9eaee;border:1px solid #2a2d36;border-radius:14px;padding:14px 16px;font:14px/1.45 system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.55);display:none}
+#fkf-banner b{color:#fff}
+.fkf-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.fkf-btn{border:1px solid #2a2d36;background:#1b1e26;color:#fff;border-radius:9px;padding:8px 14px;font:600 13px system-ui,sans-serif;cursor:pointer}
+.fkf-btn.pri{background:#E31B23;border-color:#E31B23}
+#fkf-pref-bg{position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;padding:14px}
+#fkf-pref{background:#12141a;color:#e9eaee;border:1px solid #2a2d36;border-radius:16px;width:100%;max-width:480px;max-height:88vh;overflow:auto;padding:18px 18px 16px;font:14px/1.45 system-ui,sans-serif}
+#fkf-pref h3{margin:0 0 4px;font-size:18px;color:#fff}
+#fkf-pref .sub{color:#9aa0ad;font-size:12.5px;margin-bottom:12px}
+.fkf-sec{border-top:1px solid #23262f;padding:12px 0}
+.fkf-sec h4{margin:0 0 6px;font-size:14px;color:#fff;display:flex;justify-content:space-between;align-items:center}
+.fkf-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;gap:10px}
+.fkf-row small{color:#9aa0ad;display:block;font-size:12px}
+.fkf-sw{position:relative;width:42px;height:24px;flex:none}
+.fkf-sw input{opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer;z-index:2}
+.fkf-sw span{position:absolute;inset:0;background:#3a3e49;border-radius:99px;transition:.15s}
+.fkf-sw span:before{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s}
+.fkf-sw input:checked+span{background:#E31B23}
+.fkf-sw input:checked+span:before{transform:translateX(18px)}
+.fkf-sw input:disabled+span{opacity:.55}
+#fkf-pref select{width:100%;background:#1b1e26;color:#fff;border:1px solid #2a2d36;border-radius:9px;padding:8px}
+#fkf-msg{color:#f5c04a;font-size:12.5px;margin-top:8px;min-height:16px}
+</style>
+<script>
+(function () {
+  if (window.__fkfB24) return; window.__fkfB24 = true;
+  var KEY = 'BMaA-tjH7p4_Bk2TguyjdNqWmt7UFVxkC78puwW-yr5COaIXTT9-U-T2nzbkbNrirjua-aBY9VOBUo-QXPKLs6o';
+  var BASE = (typeof DB_URL === 'string' && DB_URL.indexOf('/rest/v1') > -1) ? DB_URL.replace(/\/+$/, '').replace(/(\/rest\/v1).*/, '$1') : 'https://qmaybtoqrerogxwubhwh.supabase.co/rest/v1';
+  var H = (typeof headers !== 'undefined' && headers) ? headers : {};
+  var TOPICS = [['kickoff', 'Kick-off', 'When a match goes live'], ['goal', 'Goals', 'Every goal as it happens'], ['fulltime', 'Full-time', 'Final scores'], ['fantasy', 'Fantasy results', 'Your gameweek points are in'], ['deadline', 'Deadline reminders', 'Pick your team before it locks']];
+  var installEv = null;
+  function ls(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+  var C = ls('fkf_consent') || { seen: false, prefs: false };
+  var P = ls('fkf_notif') || { topics: ['kickoff', 'goal', 'fulltime', 'fantasy', 'deadline'], team: '' };
+
+  var bell = document.createElement('button');
+  bell.id = 'fkf-bell'; bell.title = 'Notifications & preferences';
+  bell.innerHTML = '<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><i></i>';
+  document.body.appendChild(bell);
+
+  var banner = document.createElement('div'); banner.id = 'fkf-banner';
+  banner.innerHTML = '<b>Your privacy, your choice.</b> We use essential storage to keep the site and your fantasy login working. With your OK we also remember your favourite club, and we can send match and fantasy alerts.<div class="fkf-btns"><button class="fkf-btn pri" data-a="all">Accept all</button><button class="fkf-btn" data-a="ess">Essential only</button><button class="fkf-btn" data-a="choose">Choose</button></div>';
+  document.body.appendChild(banner);
+
+  var bg = document.createElement('div'); bg.id = 'fkf-pref-bg';
+  bg.innerHTML = '<div id="fkf-pref"><h3>Preferences</h3><div class="sub">Control what this site stores and sends. Change it any time.</div>' +
+    '<div class="fkf-sec"><div class="fkf-row"><div>Essential<small>Keeps the site and fantasy login working. Always on.</small></div><label class="fkf-sw"><input type="checkbox" checked disabled><span></span></label></div>' +
+    '<div class="fkf-row"><div>Preferences<small>Remember your favourite club and settings on this device.</small></div><label class="fkf-sw"><input type="checkbox" id="fkf-c-prefs"><span></span></label></div></div>' +
+    '<div class="fkf-sec"><h4>Notifications <label class="fkf-sw"><input type="checkbox" id="fkf-n-on"><span></span></label></h4><div class="sub" style="margin:0">Match and fantasy alerts on this device. Off until you switch it on.</div><div id="fkf-n-opts"></div>' +
+    '<div class="fkf-row" style="display:block"><div style="margin:6px 0">Only for this club (optional)</div><select id="fkf-n-team"><option value="">All clubs</option></select></div><div id="fkf-msg"></div></div>' +
+    '<div class="fkf-sec" id="fkf-inst" style="display:none"><div class="fkf-row"><div>Install the app<small>Add KPL Hub to your home screen or desktop.</small></div><button class="fkf-btn pri" id="fkf-i-btn">Install</button></div></div>' +
+    '<div class="fkf-btns" style="justify-content:flex-end"><button class="fkf-btn pri" id="fkf-close">Done</button></div></div>';
+  document.body.appendChild(bg);
+  var opts = bg.querySelector('#fkf-n-opts');
+  TOPICS.forEach(function (t) {
+    var r = document.createElement('div'); r.className = 'fkf-row';
+    r.innerHTML = '<div>' + t[1] + '<small>' + t[2] + '</small></div><label class="fkf-sw"><input type="checkbox" data-t="' + t[0] + '"><span></span></label>';
+    opts.appendChild(r);
+  });
+  function $(s) { return bg.querySelector(s); }
+  function msg(t) { $('#fkf-msg').textContent = t || ''; }
+  function u8(b64) { var p = '='.repeat((4 - b64.length % 4) % 4), s = atob((b64 + p).replace(/-/g, '+').replace(/_/g, '/')), a = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; }
+  function rpc(fn, body) { return fetch(BASE + '/rpc/' + fn, { method: 'POST', headers: Object.assign({}, H, { 'Content-Type': 'application/json' }), body: JSON.stringify(body) }); }
+  function getSub() { if (!('serviceWorker' in navigator) || !('PushManager' in window)) return Promise.resolve(null); return navigator.serviceWorker.getRegistration('/').then(function (r) { return r ? r.pushManager.getSubscription() : null; }).catch(function () { return null; }); }
+  function paint() {
+    $('#fkf-c-prefs').checked = !!C.prefs;
+    opts.querySelectorAll('input').forEach(function (i) { i.checked = P.topics.indexOf(i.getAttribute('data-t')) > -1; });
+    $('#fkf-n-team').value = P.team || '';
+    getSub().then(function (s) { $('#fkf-n-on').checked = !!s && Notification.permission === 'granted'; bell.classList.toggle('off', !s); });
+    $('#fkf-inst').style.display = installEv ? 'block' : 'none';
+  }
+  function saveSub(sub) {
+    var j = sub.toJSON();
+    return rpc('push_save', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_topics: P.topics, p_team_ids: P.team ? [String(P.team)] : [] });
+  }
+  function readUI() {
+    P.topics = []; opts.querySelectorAll('input').forEach(function (i) { if (i.checked) P.topics.push(i.getAttribute('data-t')); });
+    P.team = $('#fkf-n-team').value;
+    C.prefs = $('#fkf-c-prefs').checked; C.seen = true;
+    ls('fkf_consent', C);
+    if (C.prefs) ls('fkf_notif', P); else { try { localStorage.removeItem('fkf_notif'); } catch (e) { } }
+  }
+  function turnOn() {
+    msg('');
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) { msg('This browser cannot do notifications. On iPhone: tap Share, then Add to Home Screen, and open the app from there.'); $('#fkf-n-on').checked = false; return; }
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== 'granted') { msg('Notifications are blocked. Allow them in your browser site settings, then try again.'); $('#fkf-n-on').checked = false; return; }
+      return navigator.serviceWorker.register('/sw.js').then(function () { return navigator.serviceWorker.ready; }).then(function (reg) {
+        return reg.pushManager.getSubscription().then(function (s) { return s || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: u8(KEY) }); });
+      }).then(function (sub) { return saveSub(sub); }).then(function () { msg('Notifications are on.'); paint(); });
+    }).catch(function (e) { msg('Could not turn on notifications: ' + (e && e.message || e)); $('#fkf-n-on').checked = false; });
+  }
+  function turnOff() {
+    getSub().then(function (s) { if (!s) return; var ep = s.endpoint; return s.unsubscribe().then(function () { return rpc('push_remove', { p_endpoint: ep }); }); }).then(function () { msg('Notifications are off.'); paint(); });
+  }
+  function open() { paint(); bg.style.display = 'flex'; banner.style.display = 'none'; }
+  function close() { readUI(); bg.style.display = 'none'; getSub().then(function (s) { if (s) saveSub(s); }); }
+  bell.addEventListener('click', open);
+  bg.addEventListener('click', function (e) { if (e.target === bg) close(); });
+  $('#fkf-close').addEventListener('click', close);
+  $('#fkf-n-on').addEventListener('change', function () { readUI(); this.checked ? turnOn() : turnOff(); });
+  $('#fkf-i-btn').addEventListener('click', function () { if (installEv) { installEv.prompt(); installEv = null; paint(); } });
+  banner.addEventListener('click', function (e) {
+    var a = e.target.getAttribute && e.target.getAttribute('data-a'); if (!a) return;
+    if (a === 'choose') return open();
+    C = { seen: true, prefs: a === 'all' }; ls('fkf_consent', C); if (C.prefs) ls('fkf_notif', P); banner.style.display = 'none';
+    if (a === 'all') open();
+  });
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); installEv = e; });
+  window.addEventListener('appinstalled', function () { installEv = null; });
+  fetch(BASE + '/teams?select=id,name&order=name', { headers: H }).then(function (r) { return r.json(); }).then(function (rows) {
+    var s = $('#fkf-n-team'); (rows || []).forEach(function (t) { var o = document.createElement('option'); o.value = t.id; o.textContent = t.name; s.appendChild(o); }); s.value = P.team || '';
+  }).catch(function () { });
+  paint();
+  if (!C.seen) setTimeout(function () { banner.style.display = 'block'; }, 1500);
+  window.fkfOpenPrefs = open;
+})();
 </script>
 </body>
 </html>
