@@ -245,7 +245,7 @@
 (function () {
   var t0 = Date.now(), s = document.getElementById('fkf-splash');
   function hide() { if (!s) return; s.classList.add('fkf-hide'); setTimeout(function () { if (s && s.parentNode) s.parentNode.removeChild(s); }, 600); }
-  function done() { setTimeout(hide, Math.max(0, 900 - (Date.now() - t0))); }
+  function done() { setTimeout(hide, Math.max(0, 3000 - (Date.now() - t0))); }
   if (document.readyState === 'complete') done(); else window.addEventListener('load', done);
   setTimeout(hide, 7000);
 })();
