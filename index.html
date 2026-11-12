@@ -9564,5 +9564,67 @@ body.fkf-page-open #fkf-bell,body.fkf-page-open #fkf-banner{display:none!importa
   });
 })();
 </script>
+<!-- BLOCK 28: remember where you were after a refresh + livelier page backgrounds -->
+<style>
+:root{--fkf-page-bg:radial-gradient(900px 520px at 8% -10%,rgba(16,185,129,.30),transparent 60%),radial-gradient(800px 520px at 100% 0%,rgba(227,27,35,.28),transparent 60%),radial-gradient(760px 460px at 50% 112%,rgba(255,199,44,.16),transparent 60%),linear-gradient(180deg,#10141b,#0B0C10)}
+.modal-screen.active,#fkf-tv,#fkf-pref-bg,#fkf-mp{background:var(--fkf-page-bg)!important;background-attachment:fixed!important}
+</style>
+<script>
+(function () {
+  if (window.__fkfB28) return; window.__fkfB28 = true;
+  var K = 'fkf_place', cur = { tab: 'matches', seg: null }, restoring = false;
+  function persist() { try { sessionStorage.setItem(K, JSON.stringify(cur)); } catch (e) { } }
+  var os = window.switchTab;
+  if (typeof os === 'function') {
+    window.switchTab = function (t) {
+      var r = os.apply(this, arguments);
+      if (!restoring) { cur.tab = t; if (t !== 'fantasy') cur.seg = null; persist(); }
+      return r;
+    };
+  }
+  var fp = document.getElementById('fantasy-panel');
+  if (fp) new MutationObserver(function () {
+    if (!restoring && cur.tab === 'fantasy') { cur.seg = fp.dataset.seg || null; persist(); }
+  }).observe(fp, { attributes: true, attributeFilter: ['data-seg'] });
+  function saveScroll() {
+    try { var m = document.querySelector('main'); var y = Math.max(window.scrollY || 0, m ? m.scrollTop : 0); cur.y = y; persist(); } catch (e) { }
+  }
+  window.addEventListener('pagehide', saveScroll);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') saveScroll(); });
+
+  function restore() {
+    var p = null; try { p = JSON.parse(sessionStorage.getItem(K) || 'null'); } catch (e) { }
+    if (!p || !p.tab || /access_token|refresh_token|type=/.test(location.hash)) return;
+    if (!document.getElementById(p.tab + '-panel')) return; // unknown place: stay on home
+    cur = { tab: p.tab, seg: p.seg || null };
+    restoring = true;
+    try {
+      if (p.tab !== 'matches') {
+        var btn = document.querySelector('.nav-links button[onclick*="switchTab(\'' + p.tab + '\'"]');
+        window.switchTab(p.tab, { currentTarget: btn || null });
+      }
+    } catch (e) { }
+    restoring = false;
+    if (p.tab === 'fantasy' && p.seg && p.seg !== 'pick') {
+      var tries = 0, iv = setInterval(function () {
+        var b = document.querySelector('#fkf-seg button[data-s="' + p.seg + '"]');
+        if (b) { clearInterval(iv); restoring = true; b.click(); restoring = false; }
+        else if (++tries > 40) clearInterval(iv);
+      }, 100);
+    }
+    if (p.y > 80) {
+      var n = 0, iv2 = setInterval(function () {
+        var m = document.querySelector('main'), tall = Math.max(document.documentElement.scrollHeight, m ? m.scrollHeight : 0);
+        if (tall > p.y + 200 || ++n > 40) {
+          clearInterval(iv2);
+          try { window.scrollTo(0, p.y); if (m) m.scrollTop = p.y; } catch (e) { }
+        }
+      }, 150);
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(restore, 0); });
+  else setTimeout(restore, 0);
+})();
+</script>
 </body>
 </html>
