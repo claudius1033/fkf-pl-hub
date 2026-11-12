@@ -8820,6 +8820,7 @@ body:not(.is-admin) .rf-admin{display:none !important}
         return calc(G, goals, r[1], r[2], r[0]).pp;
     };
     /* one source of points for the whole Fantasy page (market list, player pop-up, rings): the same rules as the Points tab */
+    window.fkfLoad = load;
     window.fkfSeasonPts = async function () {
         var d = await load(false), o = {};
         d.plist.forEach(function (p) { o[p.id] = total(d, p.id); });
@@ -9377,6 +9378,139 @@ if (!C) {
   paint();
   if (!C.seen) setTimeout(function () { banner.style.display = 'block'; }, 1500);
   window.fkfOpenPrefs = open;
+})();
+</script>
+<!-- BLOCK 26: tap a team in a league / the leaderboard to see their squad and points per gameweek -->
+<style>
+#fkf-tv{position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:12px}
+#fkf-tv.on{display:flex}
+#fkf-tv .box{background:#12141a;color:#e9eaee;border:1px solid #2a2d36;border-radius:16px;width:100%;max-width:560px;max-height:92vh;overflow:auto;padding:16px;font:14px/1.4 system-ui,sans-serif;position:relative}
+#fkf-tv .x{position:absolute;top:10px;left:10px;width:36px;height:36px;border-radius:50%;border:1px solid #2a2d36;background:#1b1e26;color:#fff;font-size:18px;cursor:pointer}
+#fkf-tv h3{margin:2px 0 2px 48px;font-size:18px;color:#fff}
+#fkf-tv .sub{margin:0 0 12px 48px;color:#9aa0ad;font-size:12.5px}
+#fkf-tv .tiles{display:flex;gap:8px;margin-bottom:10px}
+#fkf-tv .tiles div{flex:1;background:#1b1e26;border-radius:10px;padding:8px 10px;text-align:center}
+#fkf-tv .tiles b{display:block;font-size:20px;color:#FFC72C}
+#fkf-tv .tiles span{font-size:11px;color:#9aa0ad}
+#fkf-tv .gws{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px}
+#fkf-tv .gw{flex:none;min-width:58px;background:#1b1e26;border:1px solid #2a2d36;color:#fff;border-radius:10px;padding:6px 8px;text-align:center;cursor:pointer;font:600 12px system-ui,sans-serif}
+#fkf-tv .gw small{display:block;color:#FFC72C;font-size:14px}
+#fkf-tv .gw.sel{border-color:#E31B23;background:#2a1216}
+#fkf-tv .gw.lock{opacity:.45;cursor:default}
+#fkf-tv .line{display:flex;justify-content:center;gap:8px;margin:8px 0;flex-wrap:wrap}
+#fkf-tv .pc{width:84px;text-align:center;position:relative}
+#fkf-tv .pc .ph{width:54px;height:54px;border-radius:50%;margin:0 auto;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#fkf-tv .pc .ph img{width:100%;height:100%;object-fit:cover}
+#fkf-tv .pc .n{font-size:11.5px;margin-top:3px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fkf-tv .pc .p{font-size:12px;font-weight:700;background:#FFC72C;color:#1b1405;border-radius:6px;padding:1px 6px;display:inline-block;margin-top:2px}
+#fkf-tv .pc .c{position:absolute;top:-2px;right:10px;background:#E31B23;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:800;line-height:18px}
+#fkf-tv .bn{border-top:1px solid #23262f;margin-top:8px;padding-top:6px;color:#9aa0ad;font-size:12px;text-align:center}
+#fkf-tv .msg{padding:22px 8px;text-align:center;color:#9aa0ad}
+#fkf-tv .hint{color:#9aa0ad;font-size:11.5px;margin-top:10px}
+#fl-body .standings-table tbody tr td.club, #fz-board tbody tr td.club{cursor:pointer;text-decoration:underline dotted #555}
+</style>
+<script>
+(function () {
+  if (window.__fkfB26) return; window.__fkfB26 = true;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function J(path) { return fetch(DB_URL + path, { headers: headers }).then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }); }
+  function pname(p) { return p ? (p.known_as || p.full_name || '?') : '?'; }
+  function short(p) { var n = pname(p).split(' '); return n.length > 1 ? n[0].charAt(0) + '. ' + n[n.length - 1] : n[0]; }
+  function started(m) { return m.status === 'completed' || (m.match_datetime && new Date(m.match_datetime).getTime() <= Date.now()); }
+
+  var el = document.createElement('div'); el.id = 'fkf-tv';
+  el.innerHTML = '<div class="box"><button type="button" class="x" aria-label="Back">←</button><div id="fkf-tv-in"></div></div>';
+  document.body.appendChild(el);
+  var inn = el.querySelector('#fkf-tv-in');
+  function close() { el.classList.remove('on'); }
+  el.addEventListener('click', function (e) { if (e.target === el || e.target.closest('.x')) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+
+  var S = null; // current view state
+  function gwTotal(d, sq, g) {
+    var o = d.pp[g] || {}, t = 0, mult = sq.chip === 'triple_captain' ? 3 : 2;
+    sq.xi.forEach(function (id) { t += (o[id] || 0) * (id === sq.cap ? mult : 1); });
+    if (sq.chip === 'bench_boost') sq.bench.forEach(function (id) { t += o[id] || 0; });
+    return t;
+  }
+  function squads(d, team, picks) {
+    var by = {}, base = null, out = {};
+    picks.forEach(function (s) { by[s.gameweek] = s; });
+    var anyPick = picks.length > 0;
+    d.G.forEach(function (gw) {
+      var s = by[gw.n], cur;
+      if (s) {
+        var ids = (s.player_ids || []).map(Number);
+        cur = { xi: ids.slice(0, 11), bench: ids.slice(11), cap: Number(s.captain_id), chip: s.chip || null };
+        if (cur.chip !== 'free_hit') base = cur;
+      } else if (base) cur = { xi: base.xi, bench: base.bench, cap: base.cap, chip: null };
+      else if (!anyPick && team.player_ids && team.player_ids.length) {
+        var t = team.player_ids.map(Number);
+        cur = { xi: t.slice(0, 11), bench: t.slice(11), cap: Number(team.captain_id), chip: null };
+      } else cur = null;
+      out[gw.n] = cur;
+    });
+    return out;
+  }
+  function pcard(d, id, sq, g) {
+    var p = d.players[id]; if (!p) return '';
+    var o = (d.pp[g] || {})[id] || 0, isCap = id === sq.cap, mult = sq.chip === 'triple_captain' ? 3 : 2;
+    return '<div class="pc">' + (isCap ? '<span class="c">' + (sq.chip === 'triple_captain' ? '3x' : 'C') + '</span>' : '') +
+      '<div class="ph" style="background-color:' + paletteColor(pname(p)) + '">' + avatarHtml(pname(p), p.image_url) + '</div>' +
+      '<div class="n">' + esc(short(p)) + '</div><span class="p">' + (o * (isCap ? mult : 1)) + '</span></div>';
+  }
+  function render() {
+    var d = S.d, h = '';
+    var tiles = '<div class="tiles"><div><b>' + esc(S.total != null ? S.total : '-') + '</b><span>Season total</span></div><div><b>' + esc(S.gw != null ? S.gw : '-') + '</b><span>Latest gameweek</span></div></div>';
+    var pills = '<div class="gws">' + d.G.map(function (g) {
+      var open = g.ms.some(started), sq = S.sq[g.n];
+      return '<button type="button" class="gw' + (open ? '' : ' lock') + (g.n === S.sel ? ' sel' : '') + '" data-g="' + g.n + '">GW' + g.n + '<small>' + (open && sq ? gwTotal(d, sq, g.n) : '–') + '</small></button>';
+    }).join('') + '</div>';
+    var body = '';
+    var sq = S.sel != null ? S.sq[S.sel] : null;
+    if (S.sel == null) body = '<div class="msg">No finished gameweeks to show yet. Squads are shown once a gameweek has started.</div>';
+    else if (!sq) body = '<div class="msg">No team saved for this gameweek.</div>';
+    else {
+      var byPos = { FWD: [], MID: [], DEF: [], GK: [] };
+      sq.xi.forEach(function (id) { var p = d.players[id]; if (p && byPos[p.position]) byPos[p.position].push(id); });
+      ['FWD', 'MID', 'DEF', 'GK'].forEach(function (pos) { body += '<div class="line">' + byPos[pos].map(function (id) { return pcard(d, id, sq, S.sel); }).join('') + '</div>'; });
+      body += '<div class="bn">Substitutes' + (sq.chip ? ' · Chip: ' + esc(String(sq.chip).replace('_', ' ')) : '') + '</div><div class="line">' + sq.bench.map(function (id) { return pcard(d, id, sq, S.sel); }).join('') + '</div>' +
+        '<div class="hint">Captain points are doubled. Gameweek points here are before any transfer cost.</div>';
+    }
+    inn.innerHTML = '<h3>' + esc(S.name) + '</h3><div class="sub">Fantasy team</div>' + tiles + pills + body;
+  }
+  el.addEventListener('click', function (e) {
+    var b = e.target.closest('.gw'); if (!b || !S || b.classList.contains('lock')) return;
+    S.sel = Number(b.dataset.g); render();
+  });
+  function open(name, gwPts, total) {
+    el.classList.add('on');
+    inn.innerHTML = '<div class="msg">Loading ' + esc(name) + '...</div>';
+    var enc = encodeURIComponent(name);
+    Promise.all([window.fkfLoad ? window.fkfLoad(false) : null, J('/fantasy_teams?select=id,team_name,player_ids,captain_id&team_name=eq.' + enc)]).then(function (r) {
+      var d = r[0], team = (r[1] || [])[0];
+      if (!d || !team) { inn.innerHTML = '<div class="msg">Could not load this team.</div>'; return; }
+      return J('/fantasy_gw_picks?select=gameweek,player_ids,captain_id,chip&team_id=eq.' + encodeURIComponent(team.id) + '&order=gameweek.asc').then(function (picks) {
+        var sq = squads(d, team, picks || []), sel = null;
+        d.G.forEach(function (g) { if (g.ms.some(started) && sq[g.n]) sel = g.n; });
+        S = { d: d, name: team.team_name || name, sq: sq, sel: sel, gw: gwPts, total: total };
+        render();
+      });
+    }).catch(function () { inn.innerHTML = '<div class="msg">Could not load this team. Check your connection and try again.</div>'; });
+  }
+  document.addEventListener('click', function (e) {
+    var td = e.target.closest && e.target.closest('td.club'); if (!td) return;
+    var tr = td.closest('tr'), tb = tr && tr.closest('table'); if (!tb) return;
+    if (!(tb.closest('#fl-body') || tb.closest('#fz-board') || tb.id === 'fz-board')) return;
+    var name = td.textContent.trim(); if (!name) return;
+    var g = tr.querySelector('td.gw'), p = tr.querySelector('td.pts');
+    var cells = tr.querySelectorAll('td');
+    var gwv = g ? g.textContent.trim() : (cells[2] ? cells[2].textContent.trim() : null);
+    var tot = p ? p.textContent.trim() : (cells[3] ? cells[3].textContent.trim() : null);
+    e.preventDefault(); e.stopPropagation();
+    open(name, gwv, tot);
+  }, true);
+  window.fkfViewTeam = open;
 })();
 </script>
 </body>
